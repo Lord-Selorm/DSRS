@@ -1,0 +1,20 @@
+{
+  "name": "dsrs-app",
+  "version": "1.0.0",
+  "description": "Disused Sealed Radioactive Sources - Radioactive Source Inventory & Tracking",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "build:client": "cd client && npm run build",
+    "start": "electron .",
+    "db:init": "cd server && npm run db:init",
+    "db:seed": "cd server && npm run db:seed",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^28.1.0"
+  }
+}

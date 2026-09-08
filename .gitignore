@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vite/
+*.log
+.env
+.env.local
+electron/dist/
+server/uploads/
+.DS_Store
