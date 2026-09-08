@@ -8,10 +8,15 @@
     "dev:client": "cd client && npm run dev",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build:client": "cd client && npm run build",
-    "start": "electron .",
+    "start": "node server/index.js",
+    "start:electron": "electron .",
     "db:init": "cd server && npm run db:init",
     "db:seed": "cd server && npm run db:seed",
+    "db:provision": "cd server && npm run db:provision",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "concurrently": "^8.2.2",

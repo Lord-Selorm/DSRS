@@ -5,7 +5,8 @@
     "dev": "nodemon index.js",
     "start": "node index.js",
     "db:init": "node database/init.js",
-    "db:seed": "node database/seed.js"
+    "db:seed": "node database/seed.js",
+    "db:provision": "node database/provision.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
