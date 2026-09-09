@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { FiSearch, FiDownload, FiPrinter, FiInbox, FiEye, FiSliders, FiX } from 'react-icons/fi';
+import { FiSearch, FiDownload, FiPrinter, FiInbox, FiEye, FiSliders, FiX, FiFileText } from 'react-icons/fi';
 import api from '../services/api';
 import { toTbq, categoryLabel } from '../utils/unitConversion';
 import { formatDate } from '../utils/unitConversion';
+import { printInventoryReport } from '../utils/printInventoryReport';
 
 const PAGE = 100000;
 
@@ -17,6 +18,7 @@ export default function InventoryPreview() {
   const [filters, setFilters] = useState({});
   const [panelOpen, setPanelOpen] = useState(false);
   const [dValues, setDValues] = useState([]);
+  const [institutions, setInstitutions] = useState([]);
 
   const load = () => {
     setLoading(true);
@@ -28,6 +30,7 @@ export default function InventoryPreview() {
 
   useEffect(() => {
     api.get('/sources/d-values').then(({ data }) => setDValues(data)).catch(() => {});
+    api.get('/institutions').then(({ data }) => setInstitutions(data)).catch(() => {});
   }, []);
 
   useEffect(() => { load(); }, [JSON.stringify(filters)]);
@@ -65,6 +68,7 @@ export default function InventoryPreview() {
           <p className="text-sm text-slate-500 mt-0.5">Read-only view of all registered sources · {total} records</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => printInventoryReport({ sources: searchable, institutions })} className="btn-secondary"><FiFileText size={15} /> Report (PDF)</button>
           <button onClick={exportExcel} className="btn-secondary"><FiDownload size={15} /> Excel</button>
           <button onClick={() => window.print()} className="btn-secondary"><FiPrinter size={15} /> Print</button>
           <button onClick={() => setPanelOpen(!panelOpen)} className={`btn-secondary ${panelOpen ? '!border-brand-500 !text-brand-700' : ''}`}>

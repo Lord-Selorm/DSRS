@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { FiFilter, FiDownload, FiPrinter, FiSearch, FiEye, FiEdit, FiInbox, FiRefreshCw, FiAlertTriangle, FiPlus, FiList } from 'react-icons/fi';
+import { FiFilter, FiDownload, FiPrinter, FiSearch, FiEye, FiEdit, FiInbox, FiRefreshCw, FiAlertTriangle, FiPlus, FiList, FiFileText } from 'react-icons/fi';
 import api from '../services/api';
 import SourceEntryForm from '../components/SourceEntryForm';
 import { toTbq, categoryLabel } from '../utils/unitConversion';
+import { printInventoryReport } from '../utils/printInventoryReport';
 
 const PAGE = 100000;
 
@@ -252,12 +253,15 @@ export default function DsrsEntry() {
                   <h2 className="font-semibold text-sm text-slate-800">Export inventory</h2>
                 </div>
               </header>
-              <div className="p-4 grid grid-cols-2 gap-2">
+              <div className="p-4 grid grid-cols-3 gap-2">
                 <button onClick={exportExcel} className="btn-secondary !py-2">
                   <FiDownload size={14} /> Excel
                 </button>
                 <button onClick={() => window.print()} className="btn-secondary !py-2">
                   <FiPrinter size={14} /> Print / PDF
+                </button>
+                <button onClick={() => printInventoryReport({ sources: rows, institutions })} className="btn-secondary !py-2">
+                  <FiFileText size={14} /> Report
                 </button>
               </div>
               <div className="px-4 pb-4 pt-0 text-[11px] text-slate-400">
