@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FiPlus, FiEdit, FiTrash2, FiSearch, FiUsers, FiInbox, FiSave, FiX, FiPhone, FiMapPin } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiSearch, FiUsers, FiInbox, FiSave, FiX, FiPhone, FiMapPin, FiFileText, FiPrinter } from 'react-icons/fi';
 import api from '../services/api';
 
 const emptyForm = { name: '', contact_phone: '', address: '', license_number: '', rpo_rpe_name: '' };
@@ -94,6 +94,49 @@ export default function EndUsers() {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
 
+  const exportPdf = (rows, title) => {
+    if (!rows.length) {
+      toast.error('Nothing selected to export');
+      return;
+    }
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const rowsHtml = rows.map((u, i) => `
+      <tr>
+        <td class="num">${i + 1}</td>
+        <td><strong>${esc(u.name)}</strong><br/><span class="muted">${esc(u.address || '')}</span></td>
+        <td>${esc(u.code || '')}</td>
+        <td>${esc(u.contact_phone || '—')}</td>
+        <td>${esc(u.license_number || '—')}</td>
+        <td>${esc(u.rpo_rpe_name || '—')}</td>
+      </tr>`).join('');
+    const stamp = new Date().toLocaleString();
+    const win = window.open('', '_blank', 'width=1000,height=750');
+    win.document.write(`<!doctype html><html><head><title>${title}</title><style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; padding: 32px; }
+      h1 { margin: 0; font-size: 20px; }
+      .sub { color: #64748b; font-size: 12px; margin: 4px 0 20px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th { text-align: left; background: #0f172a; color: #fff; padding: 8px 10px; font-weight: 600; }
+      td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+      td.num { color: #64748b; }
+      .muted { color: #94a3b8; font-size: 11px; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      .foot { margin-top: 16px; color: #94a3b8; font-size: 11px; }
+      @media print { body { padding: 0; } }
+    </style></head><body>
+      <h1>DSRS &mdash; ${title}</h1>
+      <div class="sub">${rows.length} record(s) &bull; generated ${stamp}</div>
+      <table>
+        <thead><tr><th>#</th><th>End User</th><th>Code</th><th>Telephone</th><th>License No.</th><th>RPO / RPE</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+      <div class="foot">Ghana DSRS Inventory System &mdash; confidential regulatory record.</div>
+    </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 300);
+  };
+
   return (
     <div className="p-6 h-full">
       <div className="mb-5">
@@ -156,10 +199,18 @@ export default function EndUsers() {
               <p className="text-xs text-slate-400 mt-0.5">{filtered.length} of {users.length} facilities</p>
             </div>
             {selected.length > 0 && (
-              <button onClick={bulkDelete} className="btn-danger !px-3 !py-1.5 text-xs">
-                <FiTrash2 size={13} /> Delete {selected.length} selected
-              </button>
+              <>
+                <button onClick={() => exportPdf(users.filter((u) => selected.includes(u.id)), 'Selected End Users')} className="btn-secondary !px-3 !py-1.5 text-xs">
+                  <FiFileText size={13} /> PDF ({selected.length}) selected
+                </button>
+                <button onClick={bulkDelete} className="btn-danger !px-3 !py-1.5 text-xs">
+                  <FiTrash2 size={13} /> Delete {selected.length} selected
+                </button>
+              </>
             )}
+            <button onClick={() => exportPdf(filtered, 'All End Users')} className="btn-secondary !px-3 !py-1.5 text-xs">
+              <FiPrinter size={13} /> PDF (all)
+            </button>
           </div>
 
           <div className="p-4 border-b border-slate-200">
