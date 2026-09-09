@@ -10,12 +10,15 @@ let server;
 let base;
 let token;
 let testSourceId;
+let seedSourceId;
 const createStamp = `TEST-${Date.now()}`;
 
 before(async () => {
   server = app.listen(0);
   await new Promise((resolve) => server.on('listening', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
+  const [[row]] = await pool.query('SELECT id FROM sources ORDER BY id LIMIT 1');
+  seedSourceId = row?.id;
 });
 
 after(async () => {
@@ -52,6 +55,26 @@ test('GET /api/health returns ok', async () => {
 test('sources require auth', async () => {
   const { status } = await api('/api/sources', { token: false });
   assert.strictEqual(status, 401);
+});
+
+test('public trace endpoint returns a source without auth', async () => {
+  const { status, data } = await api(`/api/public/sources/${seedSourceId}`, { token: false });
+  assert.strictEqual(status, 200);
+  assert.strictEqual(data.id, seedSourceId);
+  assert.ok(Array.isArray(data.history));
+  assert.ok(Array.isArray(data.measurements));
+});
+
+test('public trace returns 404 for unknown source', async () => {
+  const { status } = await api('/api/public/sources/999999', { token: false });
+  assert.strictEqual(status, 404);
+});
+
+test('public trace qrcode returns a PNG without auth', async () => {
+  const { status, data } = await api(`/api/public/sources/${seedSourceId}/qrcode`, { token: false });
+  assert.strictEqual(status, 200);
+  assert.strictEqual(data.contentType, 'image/png');
+  assert.ok(data.buffer.length > 100);
 });
 
 test('login rejects bad credentials', async () => {

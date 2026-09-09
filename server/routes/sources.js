@@ -119,7 +119,8 @@ router.get('/:id/qrcode', async (req, res) => {
   try {
     const source = await Source.findById(req.params.id);
     if (!source) return res.status(404).json({ error: 'Source not found' });
-    const url = `dsrs://source/${source.id}`;
+    const base = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    const url = `${base}/trace/${source.id}`;
     const dataUrl = await qrcode.toDataURL(url);
     res.type('png');
     res.send(Buffer.from(dataUrl.split(',')[1], 'base64'));

@@ -11,12 +11,14 @@ const app = express();
 
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 
 app.use('/uploads', express.static(uploadDir));
 
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/public', require('./routes/public'));
 app.use('/api/sources', authRequired, require('./routes/sources'));
 app.use('/api/institutions', authRequired, require('./routes/institutions'));
 app.use('/api/users', authRequired, require('./routes/users'));

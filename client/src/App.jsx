@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Shell from './components/Shell';
 import Login from './pages/Login';
+import PublicTrace from './pages/PublicTrace';
 
 function ProtectedShell() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/trace/:id" element={<PublicTrace />} />
       <Route path="/*" element={<ProtectedShell />} />
     </Routes>
   );
