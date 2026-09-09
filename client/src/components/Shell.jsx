@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
-import { FiUsers, FiEdit3, FiList, FiBarChart2, FiLogOut, FiSettings, FiRadio } from 'react-icons/fi';
+import { FiUsers, FiEdit3, FiList, FiBarChart2, FiLogOut, FiSettings, FiRadio, FiHome, FiKey } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import Dashboard from '../pages/Dashboard';
 import EndUsers from '../pages/EndUsers';
 import DsrsEntry from '../pages/DsrsEntry';
 import InventoryPreview from '../pages/InventoryPreview';
 import Statistics from '../pages/Statistics';
 import Traceability from '../pages/Traceability';
 import UsersAdmin from '../pages/UsersAdmin';
+import ChangePassword from '../pages/ChangePassword';
 
 const TABS = [
+  { to: '/', label: 'Dashboard', icon: FiHome },
   { to: '/end-users', label: 'End Users', icon: FiUsers },
   { to: '/entry', label: 'DSRS Entry', icon: FiEdit3 },
   { to: '/preview', label: 'Inventory Preview', icon: FiList },
@@ -21,6 +24,7 @@ export default function Shell() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const mustChange = !!user?.must_change_password;
 
   useEffect(() => {
     const onClick = (e) => {
@@ -90,6 +94,12 @@ export default function Shell() {
                 <p className="text-sm font-medium text-slate-800">{user?.full_name}</p>
                 <p className="text-[11px] text-slate-400">@{user?.username} · {user?.role}</p>
               </div>
+              <button
+                onClick={() => { setMenuOpen(false); navigate('/change-password'); }}
+                className="w-full flex items-center gap-2 px-3.5 py-2 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                <FiKey size={15} /> Change password
+              </button>
               {user?.role === 'admin' && (
                 <NavLink
                   to="/admin/users"
@@ -110,15 +120,21 @@ export default function Shell() {
 
       {/* ======= Content ======= */}
       <main className="flex-1 overflow-y-auto scrollbar-thin">
-        <Routes>
-          <Route path="/end-users" element={<EndUsers />} />
-          <Route path="/entry" element={<DsrsEntry />} />
-          <Route path="/preview" element={<InventoryPreview />} />
-          <Route path="/statistics" element={<Statistics />} />
-          <Route path="/sources/:id" element={<Traceability />} />
-          <Route path="/admin/users" element={<UsersAdmin />} />
-          <Route path="*" element={<Navigate to="/end-users" replace />} />
-        </Routes>
+        {mustChange ? (
+          <ChangePassword forced />
+        ) : (
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/end-users" element={<EndUsers />} />
+            <Route path="/entry" element={<DsrsEntry />} />
+            <Route path="/preview" element={<InventoryPreview />} />
+            <Route path="/statistics" element={<Statistics />} />
+            <Route path="/sources/:id" element={<Traceability />} />
+            <Route path="/admin/users" element={<UsersAdmin />} />
+            <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        )}
       </main>
     </div>
   );

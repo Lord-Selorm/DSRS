@@ -14,7 +14,7 @@ export default function Login() {
     e.preventDefault();
     try {
       await login(username, password);
-      navigate('/end-users');
+      navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Login failed');
     }

@@ -7,20 +7,20 @@ class User {
   }
 
   static async findById(id) {
-    const [rows] = await pool.query('SELECT id, username, full_name, email, role, is_active FROM users WHERE id = ?', [id]);
+    const [rows] = await pool.query('SELECT id, username, full_name, email, role, is_active, must_change_password FROM users WHERE id = ?', [id]);
     return rows[0] || null;
   }
 
-  static async create({ username, password_hash, full_name, email, role }) {
+  static async create({ username, password_hash, full_name, email, role, must_change_password }) {
     const [result] = await pool.query(
-      'INSERT INTO users (username, password_hash, full_name, email, role) VALUES (?, ?, ?, ?, ?)',
-      [username, password_hash, full_name, email, role || 'operator']
+      'INSERT INTO users (username, password_hash, full_name, email, role, must_change_password) VALUES (?, ?, ?, ?, ?, ?)',
+      [username, password_hash, full_name, email, role || 'operator', must_change_password === undefined ? 1 : must_change_password]
     );
     return result.insertId;
   }
 
   static async update(id, fields) {
-    const allowed = ['full_name', 'email', 'role', 'is_active', 'password_hash'];
+    const allowed = ['full_name', 'email', 'role', 'is_active', 'password_hash', 'must_change_password'];
     const updates = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
@@ -36,7 +36,7 @@ class User {
   }
 
   static async list() {
-    const [rows] = await pool.query('SELECT id, username, full_name, email, role, is_active, created_at FROM users');
+    const [rows] = await pool.query('SELECT id, username, full_name, email, role, is_active, must_change_password, created_at FROM users');
     return rows;
   }
 }

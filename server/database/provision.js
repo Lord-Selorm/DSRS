@@ -75,9 +75,9 @@ async function main() {
 
   const upsertUser = async (username, password, fullName, role) => {
     await conn.query(
-      `INSERT INTO users (username, password_hash, full_name, role)
-       VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), full_name = VALUES(full_name), role = VALUES(role), is_active = 1`,
+      `INSERT INTO users (username, password_hash, full_name, role, must_change_password)
+       VALUES (?, ?, ?, ?, 0)
+       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), full_name = VALUES(full_name), role = VALUES(role), is_active = 1, must_change_password = VALUES(must_change_password)`,
       [username, bcrypt.hashSync(password, 10), fullName, role]
     );
   };

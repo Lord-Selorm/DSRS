@@ -35,7 +35,7 @@ router.post('/', async (req, res) => {
     if (existing) return res.status(400).json({ error: `Username "${username}" already exists` });
 
     const password_hash = await bcrypt.hash(password, 10);
-    const id = await User.create({ username, password_hash, full_name, email, role });
+    const id = await User.create({ username, password_hash, full_name, email, role, must_change_password: 1 });
     res.status(201).json({ id });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -51,6 +51,9 @@ router.put('/:id', async (req, res) => {
     if (fields.password) {
       fields.password_hash = await bcrypt.hash(fields.password, 10);
       delete fields.password;
+      // An admin-issued password reset must be changed by the user on next login,
+      // unless the admin is changing their own password (which uses /auth/password).
+      if (Number(req.params.id) !== req.user.id) fields.must_change_password = 1;
     }
     // Admins cannot deactivate themselves
     if (fields.is_active === 0 || fields.is_active === false) {

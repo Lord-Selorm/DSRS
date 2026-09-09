@@ -12,6 +12,7 @@ CREATE TABLE users (
   email VARCHAR(100),
   role ENUM('admin', 'operator', 'viewer') DEFAULT 'operator',
   is_active TINYINT(1) DEFAULT 1,
+  must_change_password TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

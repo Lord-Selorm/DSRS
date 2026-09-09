@@ -8,11 +8,12 @@ Runs as a web app served on one port, with an optional Electron desktop shell.
 
 ## Features
 
-- **Login** — JWT-based, role-aware (admin / operator). Unauthenticated users get bounced to `/login`.
-- **End Users** — register and search the facilities that hold sources (name, license number, RPO/RPE contact, address).
-- **DSRS Entry** — register new sources with the full 40-field registry. Category 1–5 is auto-calculated from activity ÷ D-value and cannot be entered by hand. Includes filters and Excel export.
-- **Inventory Preview** — live-search + filterable table of all sources with Excel export (category colored badges, high-risk (Cat 1–2) shortcut filter).
-- **Traceability** — click any source for its complete audit trail: every create/update/transfer/measurement/leak-test/conditioning/disposal event with who and when. Each source also renders a downloadable **QR code** (`dsrs://source/<id>`) and a **Code128 barcode** (from the registered barcode, falling back to the source serial). Photo, current status and endpoint (capsule / concrete drum / borehole disposal intention) shown.
+- **Login** — JWT-based, role-aware (admin / operator). Unauthenticated users get bounced to `/login`. New accounts are issued a first-time password by the admin and are **forced to set their own password on first login**; afterwards anyone can change their own password from the account menu. An admin password reset re-triggers the forced change.
+- **Dashboard** — the landing page after sign-in: category distribution, high-risk (Cat 1–2) source list, instrument calibrations due in the next 90 days, recent registry activity, and quick actions.
+- **End Users** — register and search the facilities that hold sources (name, license number, RPO/RPE contact, address), with **PDF export** of selected rows or the full end-user register. Demo install ships the **Radiation Protection Institute** plus trial users **RPI 1 / RPI 2 / RPI 3**.
+- **DSRS Entry** — split into two tabs: *Register / Edit Source* (the numbered 7-section form) and *Inventory* (table + filters + exports). Source categorization (Category 1–5 from activity ÷ D-value) is automatic and cannot be entered by hand. A **decay auto-calc** computes Current Activity from Original Activity + activity date + half-life (A = A₀ · 2^(−t/T½), half-life auto-filled from the reference table). Reason-for-transfer is a dropdown (Temporary storage / Permanent storage / Reuse / Recycling). Emits Excel, **combined inventory report (PDF)**, and print.
+- **Inventory Preview** — live-search + filterable table of all sources with full column labels matching the entry form, Excel export, category-coloured badges and a high-risk (Cat 1–2) shortcut filter. The **Report (PDF)** button produces the combined report: end-user register (full contact/licence/RPO info) + source inventory grouped under each owning end user, with category mix and activity totals.
+- **Traceability** — click any source for its complete audit trail: every create/update/transfer/measurement/leak-test/conditioning/disposal event with who and when. Each source renders a downloadable **QR code** and a **Code128 barcode** (from the registered barcode, falling back to the source serial). Photo, current status and endpoint (capsule / concrete drum / borehole disposal intention) shown. The QR encodes a **public, no-login trace page** (`/trace/:id`) — scanning it opens the source's full record to anyone.
 - **Statistics** — filters (end user, radionuclide, category, location, receipt year, conditioning status) over a per-location pie chart and an activity-vs-year scatter with a summary table; exports the chart panel as PNG via html2canvas.
 - **Users (admin)** — manage operator accounts, roles, deactivation.
 
@@ -41,6 +42,7 @@ Express API  (server/, port 5000)  ──►  MySQL pool  ──►  dsrs_db
    │                       /:id/qrcode, /:id/barcode
    ├─ /api/institutions    end-user facilities
    ├─ /api/users           admin-only user management
+   ├─ /api/public          no-login trace endpoints (used by /trace/:id)
    └─ /api/dashboard       aggregate statistics
 ```
 
@@ -52,7 +54,7 @@ In production the Express server serves `client/dist` as static files, so the wh
 
 - **`users`** — app accounts (admin + operators), bcrypt password hashes.
 - **`institutions`** — end-user facilities (add/update; soft-deleted to keep history).
-- **`d_values`** — the per-radionuclide IAEA Table II.2 D-values (32 radionuclides).
+- **`d_values`** — the per-radionuclide IAEA Table II.2 D-values (32 radionuclides) with half-life value/unit used by the decay auto-calc.
 - **`sources`** — the registry itself, one row per DSRS, grouped by:
   - *Unique ID*: `device_serial_no`, `source_serial_no`, `nra_registration_no`, `source_barcode` (all indexed)
   - *Radionuclide*: `radionuclide_id`, half-life value/unit, original/current activity + dates + units (TBq…uCi)
@@ -87,6 +89,8 @@ D  = radionuclide D-value (TBq) from d_values (IAEA Table II.2)
 | 5 | `A/D < 0.01` |
 
 The same threshold logic lives in `server/models/DValue.js` and (for instant form feedback) `client/src/utils/unitConversion.js`.
+
+When a source's original activity, activity date and half-life are known, the form also computes the decayed **current activity** (`A = A₀ · 2^(−t/T½)`), which is what the category is then based on.
 
 ## Setup
 
@@ -123,6 +127,8 @@ Required variables:
 | `JWT_SECRET` | Token signing secret — **set a real value** | — |
 | `PORT` | API port | `5000` |
 | `DB_SSL` | `true` when DB requires TLS (cloud) | unset |
+| `DB_SSL_REJECT_UNAUTHORIZED` | `false` to accept cloud certificates backed by a private CA (TiDB Cloud) | unset |
+| `APP_URL` | Public base URL used to build QR/published links (falls back to the request's protocol/host) | unset |
 
 Provisioning-only variables: `ADMIN_PASSWORD` (sets the admin password; required in cloud), `DEMO_USERNAME` (default `demo`), `DEMO_PASSWORD` (default `demo2026`, override e.g. `Demo2026!`), `SEED_SAMPLE_SOURCES` (`0` to skip sample rows).
 
@@ -153,7 +159,7 @@ After provisioning:
 - `admin` — password from `ADMIN_PASSWORD` (if set; otherwise the existing admin password is kept)
 - `demo` — password from `DEMO_PASSWORD` (default `demo2026`; the demo deployment uses `Demo2026!`)
 
-Operators can enter sources and view everything; user administration requires the admin account.
+Operators can enter sources and view everything; user administration requires the admin account. Operator accounts created by the admin start with `must_change_password = 1`, so the first thing the user does on sign-in is replace the issued password with their own.
 
 ## Tests
 
@@ -162,7 +168,7 @@ cd server
 npm test
 ```
 
-An integration suite (`node:test`) that boots the Express app on an ephemeral port against the live database and asserts:
+An integration suite (`node:test`, 20 tests) that boots the Express app on an ephemeral port against the live database and asserts:
 
 - health endpoint and auth (401 without token, wrong password rejected, demo login)
 - the `d_values` table has all 32 radionuclides with the documented D-values (spot-checked)
@@ -170,6 +176,7 @@ An integration suite (`node:test`) that boots the Express app on an ephemeral po
 - source create with GBq→TBq conversion auto-classifies, detail returns join data + a `create` audit event
 - update recalculates category and appends history
 - search by radionuclide and partial NRA registration
+- the public, **no-login** trace endpoint: a seeded source is readable unauthenticated, an unknown id 404s, and the public QR renders a valid PNG
 - QR and Code128 barcode render valid PNGs (including the serial fallback) and 404 for missing sources
 - non-admin is denied `/api/users`
 
@@ -177,10 +184,13 @@ Test rows are created with a `TEST-` prefix and removed on completion.
 
 ## Deployment
 
-Because it is plain Node + MySQL, the app can run on any host. A zero-cost path used for the demo:
+Because it is plain Node + MySQL, the app can run on any host. The client demo runs as:
 
-- MySQL on **TiDB Cloud Serverless** (free 5 GiB tier, TLS required → set `DB_SSL=true`)
-- Express on **Render** (free web service, 750 hrs/month, sleeps after ~15 min idle)
-- Provision the cloud DB with `npm run db:provision` using the cloud environment variables
+- MySQL on **TiDB Cloud Serverless** (free 5 GiB tier, private-CA TLS → `DB_SSL=true`, `DB_SSL_REJECT_UNAUTHORIZED=false`), provisioned with `npm run db:provision` using the cloud environment variables
+- Express + built client on **Render** (free web service, 750 hrs/month, sleeps after ~15 min idle → cold start ~30–60 s), serving everything on one URL
+
+**Live demo:** https://dsrs.onrender.com — login `demo` / `Demo2026!` (admin: `admin` / `Dsrs#Adm1n!2026`). QR codes point at the public trace page `https://dsrs.onrender.com/trace/<id>`, which works without logging in.
+
+Render deploys are wired via `render.yaml` blueprint but are **manual**: after pushing, trigger `Manual Deploy → Deploy latest commit` in the Render dashboard.
 
 The root `package.json` ships `start`, `db:provision` and an `engines` field for Node ≥ 18 (`serve`-style hosts can also use Start Command `node server/index.js`).
