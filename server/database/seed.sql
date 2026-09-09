@@ -50,4 +50,8 @@ INSERT INTO users (username, password_hash, full_name, email, role) VALUES
 INSERT INTO institutions (name, code, address, contact_person, contact_phone, contact_email) VALUES
 ('Korle Bu Teaching Hospital', 'KBTH', 'Accra, Ghana', 'Dr. A. Mensah', '+233-302-123456', 'info@kbth.gov.gh'),
 ('Komfo Anokye Teaching Hospital', 'KATH', 'Kumasi, Ghana', 'Dr. K. Asare', '+233-322-654321', 'info@kath.gov.gh'),
-('National Nuclear Research Institute', 'NNRI', 'Accra, Ghana', 'Prof. S. Adjei', '+233-302-789012', 'info@nnri.gov.gh');
+('National Nuclear Research Institute', 'NNRI', 'Accra, Ghana', 'Prof. S. Adjei', '+233-302-789012', 'info@nnri.gov.gh'),
+('Radiation Protection Institute', 'RPI', 'GAEC, Legon-Accra, Ghana', 'Director RPI', '+233-302-400307', 'rpi@gaec.gov.gh'),
+('RPI 1', 'RPI-1', 'Demo end user 1', 'RPI Officer 1', '+233-302-400311', 'rpi1@gaec.gov.gh'),
+('RPI 2', 'RPI-2', 'Demo end user 2', 'RPI Officer 2', '+233-302-400312', 'rpi2@gaec.gov.gh'),
+('RPI 3', 'RPI-3', 'Demo end user 3', 'RPI Officer 3', '+233-302-400313', 'rpi3@gaec.gov.gh');

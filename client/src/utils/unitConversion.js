@@ -52,3 +52,27 @@ export function formatDate(date) {
   if (!date) return '—';
   return new Date(date).toLocaleDateString();
 }
+
+const HALF_LIFE_DAYS = {
+  s: 1 / 86400, min: 1 / 1440, h: 1 / 24, d: 1, mo: 30.4, yr: 365.25,
+  seconds: 1 / 86400, minutes: 1 / 1440, hours: 1 / 24, days: 1, months: 30.4, years: 365.25,
+};
+
+export function halfLifeToDays(value, unit) {
+  const v = Number(value);
+  if (!v || v <= 0) return null;
+  const mult = HALF_LIFE_DAYS[String(unit || '').toLowerCase()];
+  return mult ? v * mult : null;
+}
+
+// Radioactive decay: A = A0 * 2^(-t / T1/2). Result is in the SAME unit as the
+// original activity. Returns null when inputs are incomplete.
+export function decayActivity(originalActivity, originalDate, halfLifeValue, halfLifeUnit, onDate = new Date()) {
+  const a0 = Number(originalActivity);
+  const hlDays = halfLifeToDays(halfLifeValue, halfLifeUnit);
+  if (!a0 || a0 <= 0 || !hlDays) return null;
+  const d0 = new Date(originalDate).getTime();
+  const d1 = new Date(onDate).getTime();
+  if (Number.isNaN(d0) || Number.isNaN(d1) || d1 <= d0) return null;
+  return a0 * Math.pow(0.5, (d1 - d0) / (86400000 * hlDays));
+}

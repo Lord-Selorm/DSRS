@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   FiSave, FiHash, FiCrosshair, FiTool, FiUsers, FiMapPin,
   FiActivity, FiLock, FiCamera, FiX, FiChevronDown,
 } from 'react-icons/fi';
 import api from '../services/api';
-import { toTbq, classifySource, categoryBadge } from '../utils/unitConversion';
+import { toTbq, classifySource, categoryBadge, decayActivity } from '../utils/unitConversion';
 
 const RADIONUCLIDE_UNITS = ['TBq', 'GBq', 'MBq', 'kBq', 'Bq', 'Ci', 'mCi', 'uCi'];
 const HALF_LIFE_UNITS = ['s', 'min', 'h', 'd', 'yr'];
@@ -88,6 +88,25 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     }
   };
 
+  // Decay formula: original activity + activity date + half-life -> current activity
+  const decayPreview = useMemo(() => {
+    if (!form.original_activity || !form.original_activity_date) return null;
+    const dv = dValues.find((d) => d.id === Number(form.radionuclide_id));
+    const hlVal = form.half_life_value || dv?.half_life_value;
+    const hlUnit = form.half_life_unit || dv?.half_life_unit;
+    if (!hlVal) return null;
+    const target = decayActivity(form.original_activity, form.original_activity_date, hlVal, hlUnit);
+    if (target == null || target <= 0) return null;
+    return { value: target, hl: `${hlVal} ${hlUnit}`, hlAuto: !form.half_life_value };
+  }, [form.original_activity, form.original_activity_date, form.half_life_value, form.half_life_unit, form.radionuclide_id, form.original_activity_unit, dValues]);
+
+  const applyDecay = () => {
+    if (!decayPreview) return;
+    set('current_activity', trimNum(decayPreview.value));
+    set('current_activity_date', new Date().toISOString().slice(0, 10));
+    toast.success('Current activity set from radioactive decay');
+  };
+
   const toggle = (s) => setOpen(open === s ? -1 : s);
 
   const onSubmit = async (e) => {
@@ -142,7 +161,15 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-3">
           <label className="field-label">Radionuclide *</label>
-          <select value={form.radionuclide_id} onChange={(e) => set('radionuclide_id', e.target.value)} className="input" required>
+          <select value={form.radionuclide_id} onChange={(e) => {
+            const dv = dValues.find((d) => d.id === Number(e.target.value));
+            if (dv && !form.half_life_value) {
+              setForm((prev) => ({ ...prev, radionuclide_id: e.target.value, half_life_value: dv.half_life_value, half_life_unit: hlUnitFor(dv.half_life_unit) }));
+              computeCategory({ ...form, radionuclide_id: e.target.value, half_life_value: dv.half_life_value }, dValues);
+            } else {
+              set('radionuclide_id', e.target.value);
+            }
+          }} className="input" required>
             <option value="">Select radionuclide…</option>
             {dValues.map((d) => (
               <option key={d.id} value={d.id}>{d.radionuclide} — D = {d.d_value_tbq} TBq</option>
@@ -157,6 +184,26 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         <PairField label="Current Activity" value={form.current_activity} onChange={(v) => set('current_activity', v)}
           unitValue={form.current_activity_unit} onUnitChange={(v) => set('current_activity_unit', v)} units={RADIONUCLIDE_UNITS} />
         <Field label="Current Activity Date" type="date" value={form.current_activity_date} onChange={(v) => set('current_activity_date', v)} />
+        <div className="md:col-span-3">
+          <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 flex flex-wrap items-center gap-3">
+            <FiActivity size={16} className="text-brand-600 shrink-0" />
+            <div className="flex-1 min-w-[220px]">
+              {decayPreview ? (
+                <p className="text-xs text-slate-600">
+                  Decay from <b>{form.original_activity} {form.original_activity_unit}</b> on <b>{form.original_activity_date}</b>
+                  {' '}(T½ {decayPreview.hl}) → <b className="text-brand-700">≈ {trimNum(decayPreview.value)} {form.original_activity_unit}</b> today.
+                  {decayPreview.hlAuto && ' Half-life taken from the reference table.'}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500">Enter original activity, activity date and half-life to auto-compute the current activity (radioactive decay).</p>
+              )}
+              <p className="text-[11px] text-slate-400 mt-0.5">Current activity &amp; D-value set the IAEA source category (A/D ratio) — the badge in the header updates live.</p>
+            </div>
+            <button type="button" onClick={applyDecay} disabled={!decayPreview} className="btn-secondary !py-1.5 text-xs shrink-0">
+              Auto-calc →
+            </button>
+          </div>
+        </div>
         <div>
           <label className="field-label">Physical Form</label>
           <select value={form.source_physical_form} onChange={(e) => set('source_physical_form', e.target.value)} className="input">
@@ -185,7 +232,15 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         <InstitutionSelect label="Current Owner" value={form.current_owner_id} options={institutions} onChange={(v) => set('current_owner_id', v)} />
         <Field label="Date Transferred" type="date" value={form.date_transferred} onChange={(v) => set('date_transferred', v)} />
         <Field label="Current Application" value={form.current_application} onChange={(v) => set('current_application', v)} />
-        <Field label="Reason for Transfer" value={form.reason_for_transfer} onChange={(v) => set('reason_for_transfer', v)} />
+        <div>
+          <label className="field-label">Reason for Transfer</label>
+          <select value={form.reason_for_transfer} onChange={(e) => set('reason_for_transfer', e.target.value)} className="input">
+            <option value="">Select reason…</option>
+            {['Temporary storage', 'Permanent storage', 'Reuse', 'Recycling'].map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        </div>
         <Field label="Transfer Authorization" value={form.transfer_authorization} onChange={(v) => set('transfer_authorization', v)} />
         <Field label="Transporter" value={form.transporter} onChange={(v) => set('transporter', v)} />
       </div>
@@ -234,14 +289,10 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
             <option value="pending">Pending</option><option value="pass">Pass</option><option value="fail">Fail</option>
           </select>
         </div>
+        <Field label="Instrument Calibration Due Date" value={form.leak_test_instrument_calibration_due_date} onChange={(v) => set('leak_test_instrument_calibration_due_date', v)} />
         <Field label="Leak Test Method" value={form.leak_test_method} onChange={(v) => set('leak_test_method', v)} />
         <Field label="Leak Test Date" type="date" value={form.leak_test_date} onChange={(v) => set('leak_test_date', v)} />
         <Field label="Leak Test Instrument Used" value={form.leak_test_instrument_used} onChange={(v) => set('leak_test_instrument_used', v)} />
-        <Field label="Leak Test Calibration Due" type="date" value={form.leak_test_instrument_calibration_due_date} onChange={(v) => set('leak_test_instrument_calibration_due_date', v)} />
-        <div className="flex gap-6 items-end h-[42px]">
-          <Checkbox label="Return to Supplier" checked={form.return_to_supplier} onChange={(v) => set('return_to_supplier', v)} />
-          <Checkbox label="Reuse" checked={form.reuse} onChange={(v) => set('reuse', v)} />
-        </div>
       </div>
     ) },
     { n: '07', title: 'Endpoint Management', icon: FiLock, subtitle: 'Conditioning, capsules and disposal', body: (
@@ -257,6 +308,10 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         <Field label="Capsule Height (mm)" value={form.capsule_height_mm} onChange={(v) => set('capsule_height_mm', v)} />
         <Field label="Capsule Ext. Diameter (mm)" value={form.capsule_external_diameter} onChange={(v) => set('capsule_external_diameter', v)} />
         <Field label="Concrete Drum / Waste Pkg No." value={form.concrete_drum_no} onChange={(v) => set('concrete_drum_no', v)} />
+        <div className="flex gap-6 items-end h-[42px]">
+          <Checkbox label="Return to Supplier" checked={form.return_to_supplier} onChange={(v) => set('return_to_supplier', v)} />
+          <Checkbox label="Reuse" checked={form.reuse} onChange={(v) => set('reuse', v)} />
+        </div>
         <div className="flex items-end h-[42px]">
           <Checkbox label="Borehole Disposal Intention" checked={form.borehole_disposal_intention} onChange={(v) => set('borehole_disposal_intention', v)} />
         </div>
@@ -364,6 +419,20 @@ function Field({ label, value, onChange, type = 'text' }) {
       />
     </div>
   );
+}
+
+function hlUnitFor(unit) {
+  const map = { years: 'yr', days: 'd', hours: 'h', minutes: 'min', months: 'mo' };
+  return map[String(unit).toLowerCase()] || unit || 'yr';
+}
+
+function trimNum(v) {
+  if (v == null || !Number.isFinite(Number(v))) return '';
+  const n = Number(v);
+  if (n === 0) return '0';
+  const mag = Math.abs(n);
+  if (mag >= 1e6 || mag < 0.01) return n.toExponential(3);
+  return String(Math.round(n * 1e8) / 1e8);
 }
 
 function PairField({ label, value, onChange, unitValue, onUnitChange, units }) {

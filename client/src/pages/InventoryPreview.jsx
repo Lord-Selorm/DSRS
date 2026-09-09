@@ -158,16 +158,16 @@ export default function InventoryPreview() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Source</th>
-                <th>Device</th>
-                <th>Barcode</th>
-                <th>NRA reg</th>
+                <th>Source Serial No.</th>
+                <th>Device Serial No.</th>
+                <th>Source Barcode</th>
+                <th>NRA Registration No.</th>
                 <th>Radionuclide</th>
-                <th>Activity (now)</th>
-                <th>Category</th>
-                <th>End user</th>
-                <th>Location</th>
-                <th>Last verified</th>
+                <th>Current Activity</th>
+                <th>Source Category</th>
+                <th>End User</th>
+                <th>Storage Location</th>
+                <th>Last Verified Date</th>
                 <th className="text-right">Detail</th>
               </tr>
             </thead>

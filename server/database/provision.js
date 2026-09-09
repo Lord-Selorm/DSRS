@@ -118,10 +118,10 @@ async function main() {
     ['I-131', 'DIAG-I131', 'RC-015-2024', 'Komfo Anokye Teaching Hospital', 40, 2024, 'Hot Lab', 'Thyroid uptake / therapy', 'intact', 'none'],
     ['Ra-226', 'LR-226', 'LD-003-2017', 'National Nuclear Research Institute', 0.4, 2017, 'Conditioning Bay', 'Lightning rod (disused)', 'damaged', 'disposed'],
     ['Am-241/Be', 'NEUTRON-HP', 'NB-210-2020', 'National Nuclear Research Institute', 6, 2020, 'Neutron Storage', 'Neutron well logging', 'intact', 'conditioned'],
-    ['Am-241', 'SD-241', 'SM-011-2017', 'Korle Bu Teaching Hospital', 0.4, 2017, 'Storage Cabinet A', 'Smoke detector (disused)', 'intact', 'none'],
-    ['Co-57', 'CAL-57', 'CS-088-2023', 'Korle Bu Teaching Hospital', 0.5, 2023, 'Metrology Bench', 'Calibration source', 'intact', 'none'],
+    ['Am-241', 'SD-241', 'SM-011-2017', 'RPI 1', 0.4, 2017, 'Storage Cabinet A', 'Smoke detector (disused)', 'intact', 'none'],
+    ['Co-57', 'CAL-57', 'CS-088-2023', 'RPI 3', 0.5, 2023, 'Metrology Bench', 'Calibration source', 'intact', 'none'],
     ['Tc-99m', 'GEN-99M', 'GN-330-2026', 'Komfo Anokye Teaching Hospital', 0.07, 2026, 'Hot Lab', 'Generator (short-lived)', 'intact', 'none'],
-    ['Fe-55', 'CAL-55', 'CS-102-2024', 'National Nuclear Research Institute', 200, 2024, 'Metrology Bench', 'Calibration / XRF source', 'intact', 'none'],
+    ['Fe-55', 'CAL-55', 'CS-102-2024', 'RPI 2', 200, 2024, 'Metrology Bench', 'Calibration / XRF source', 'intact', 'none'],
   ];
 
   let catCount = {};
