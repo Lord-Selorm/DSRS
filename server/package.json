@@ -4,12 +4,14 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
+    "test": "node --test",
     "db:init": "node database/init.js",
     "db:seed": "node database/seed.js",
     "db:provision": "node database/provision.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "bwip-js": "^4.11.4",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",

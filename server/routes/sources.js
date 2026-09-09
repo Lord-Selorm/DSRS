@@ -5,6 +5,7 @@ const fs = require('fs');
 const Source = require('../models/Source');
 const DValue = require('../models/DValue');
 const qrcode = require('qrcode');
+const bwipjs = require('bwip-js');
 const upload = require('../middleware/multer');
 const uploadDir = require('../middleware/multer').uploadDir;
 
@@ -122,6 +123,31 @@ router.get('/:id/qrcode', async (req, res) => {
     const dataUrl = await qrcode.toDataURL(url);
     res.type('png');
     res.send(Buffer.from(dataUrl.split(',')[1], 'base64'));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:id/barcode', async (req, res) => {
+  try {
+    const source = await Source.findById(req.params.id);
+    if (!source) return res.status(404).json({ error: 'Source not found' });
+    const text = (source.source_barcode || source.source_serial_no || `DSRS-${source.id}`).toString();
+    const png = await bwipjs.toBuffer({
+      bcid: 'code128',
+      text,
+      scale: 3,
+      height: 12,
+      width: 96,
+      includetext: true,
+      textxalign: 'center',
+      textsize: 12,
+      paddingwidth: 6,
+      paddingheight: 6,
+      backgroundcolor: 'FFFFFF',
+    });
+    res.type('png');
+    res.send(png);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

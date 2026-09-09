@@ -27,11 +27,19 @@ class Source {
     const currentTbq = toTbq(data.current_activity, data.current_activity_unit);
     const classification = await DValue.calculateCategory(currentTbq, dValue.d_value_tbq);
 
+    const insertData = { ...data, source_classification: classification, created_by: userId };
+    if (insertData.source_barcode === '') insertData.source_barcode = null;
+
     const [result] = await pool.query(
       `INSERT INTO sources SET ?`,
-      [{ ...data, source_classification: classification, created_by: userId }]
+      [insertData]
     );
-    return result.insertId;
+    const sourceId = result.insertId;
+    await pool.query(
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [sourceId, userId, 'create', 'source_record', null, data.source_serial_no || data.source_barcode || `#${sourceId}`, 'Source registered']
+    );
+    return sourceId;
   }
 
   static async update(id, data, userId) {
@@ -40,6 +48,7 @@ class Source {
 
     const updateFields = { ...data };
     delete updateFields.source_classification;
+    if (updateFields.source_barcode === '') updateFields.source_barcode = null;
 
     // Recalculate classification if activity or radionuclide changed
     if (data.current_activity !== undefined || data.radionuclide_id !== undefined ||

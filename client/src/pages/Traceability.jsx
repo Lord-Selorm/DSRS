@@ -9,13 +9,18 @@ export default function Traceability() {
   const navigate = useNavigate();
   const [source, setSource] = useState(null);
   const [qr, setQr] = useState(null);
+  const [barcode, setBarcode] = useState(null);
 
   useEffect(() => {
     setSource(null);
     setQr(null);
+    setBarcode(null);
     api.get(`/sources/${id}`).then(({ data }) => setSource(data)).catch(() => {});
     api.get(`/sources/${id}/qrcode`, { responseType: 'blob' })
       .then(({ data }) => setQr(URL.createObjectURL(data)))
+      .catch(() => {});
+    api.get(`/sources/${id}/barcode`, { responseType: 'blob' })
+      .then(({ data }) => setBarcode(URL.createObjectURL(data)))
       .catch(() => {});
   }, [id]);
 
@@ -23,6 +28,13 @@ export default function Traceability() {
     const a = document.createElement('a');
     a.href = qr;
     a.download = `source_${source?.source_serial_no || id}_qr.png`;
+    a.click();
+  };
+
+  const downloadBarcode = () => {
+    const a = document.createElement('a');
+    a.href = barcode;
+    a.download = `source_${source?.source_serial_no || id}_barcode.png`;
     a.click();
   };
 
@@ -104,17 +116,36 @@ export default function Traceability() {
               <HeroItem label="Last verified" value={source.date_last_verified ? formatDate(source.date_last_verified) : '—'} />
             </div>
           </div>
-          <div className="p-5 lg:border-l border-slate-100 flex flex-col items-center justify-center bg-slate-50/50">
-            {qr ? (
-              <>
-                <img src={qr} alt="QR" className="w-32 h-32 bg-white rounded-lg p-1" />
-                <button onClick={downloadQr} className="btn-secondary !px-3 !py-1.5 text-xs mt-3">
-                  <FiDownload size={13} /> Download QR
-                </button>
-              </>
-            ) : (
-              <div className="w-32 h-32 rounded-lg bg-white flex items-center justify-center text-xs text-slate-400">QR unavailable</div>
-            )}
+          <div className="p-5 lg:border-l border-slate-100 flex flex-col items-center justify-center gap-4 bg-slate-50/50">
+            <div className="flex items-start justify-center gap-4">
+              <div className="flex flex-col items-center">
+                {qr ? (
+                  <>
+                    <img src={qr} alt="QR" className="w-28 h-28 bg-white rounded-lg p-1" />
+                    <button onClick={downloadQr} className="btn-secondary !px-2.5 !py-1 text-xs mt-2">
+                      <FiDownload size={12} /> QR
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-28 h-28 rounded-lg bg-white flex items-center justify-center text-[10px] text-slate-400">QR unavailable</div>
+                )}
+              </div>
+              <div className="flex flex-col items-center">
+                {barcode ? (
+                  <>
+                    <img src={barcode} alt="Barcode" className="w-28 bg-white rounded-lg p-1" />
+                    <button onClick={downloadBarcode} className="btn-secondary !px-2.5 !py-1 text-xs mt-2">
+                      <FiDownload size={12} /> Barcode
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-28 h-28 rounded-lg bg-white flex items-center justify-center text-[10px] text-slate-400">Barcode unavailable</div>
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 text-center leading-tight">
+              {source.source_barcode ? `Barcode: ${source.source_barcode}` : 'Scans render from source barcode / serial'}
+            </p>
           </div>
         </div>
       </div>
