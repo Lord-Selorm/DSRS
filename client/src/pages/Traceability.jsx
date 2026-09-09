@@ -150,6 +150,24 @@ export default function Traceability() {
         </div>
       </div>
 
+      {(source.photos || []).length > 0 && (
+        <section className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <FiCamera size={15} className="text-brand-600" />
+              <h3 className="font-semibold text-sm text-slate-800">Additional photos</h3>
+            </div>
+            <span className="text-xs text-slate-400">{(source.photos || []).length} photo(s)</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(source.photos || []).map((p) => (
+              <img key={p.id} src={`/uploads/${p.photo_path}`} alt="source" loading="lazy"
+                className="w-24 h-24 object-cover rounded-lg border border-slate-200" />
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 items-start">
         {/* Main: status history + change log */}
         <div className="space-y-5 min-w-0">

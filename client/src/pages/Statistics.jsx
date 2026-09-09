@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Chart as ChartJS, ArcElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, ScatterController } from 'chart.js';
-import { Scatter, Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, ScatterController, BarController, BarElement } from 'chart.js';
+import { Scatter, Pie, Bar } from 'react-chartjs-2';
 import html2canvas from 'html2canvas';
 import { FiDownload, FiFilter, FiRefreshCw, FiBarChart2, FiInbox } from 'react-icons/fi';
 import api from '../services/api';
 import { toTbq } from '../utils/unitConversion';
 
-ChartJS.register(ArcElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, ScatterController);
+ChartJS.register(ArcElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, ScatterController, BarController, BarElement);
 
 const PAGE = 100000;
 
@@ -55,6 +55,14 @@ export default function Statistics() {
       map[k] = (map[k] || 0) + 1;
     });
     return map;
+  }, [filtered]);
+
+  const radionuclideData = useMemo(() => {
+    const map = {};
+    filtered.forEach((r) => {
+      map[r.radionuclide] = (map[r.radionuclide] || 0) + 1;
+    });
+    return Object.entries(map).sort(([, a], [, b]) => b - a);
   }, [filtered]);
 
   const scatterData = useMemo(() => {
@@ -237,6 +245,42 @@ export default function Statistics() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="card overflow-hidden">
+            <header className="card-header">
+              <div className="flex items-center gap-2">
+                <FiBarChart2 size={16} className="text-brand-600" />
+                <h2 className="font-semibold text-sm text-slate-800">Sources per radionuclide</h2>
+              </div>
+              <span className="text-xs text-slate-400">{filtered.length} sources</span>
+            </header>
+            <div className="p-5">
+              {filtered.length === 0 ? (
+                <EmptyCharts />
+              ) : (
+                <div className="h-72">
+                  <Bar
+                    data={{
+                      labels: radionuclideData.map(([n]) => n),
+                      datasets: [{
+                        label: 'Sources',
+                        data: radionuclideData.map(([, c]) => c),
+                        backgroundColor: '#0e7490',
+                        hoverBackgroundColor: '#155e75',
+                        borderRadius: 6,
+                        maxBarThickness: 42,
+                      }],
+                    }}
+                    options={{
+                      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} source(s)` } } },
+                      scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
+                      maintainAspectRatio: false,
+                    }}
+                  />
                 </div>
               )}
             </div>

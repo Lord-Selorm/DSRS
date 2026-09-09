@@ -207,7 +207,7 @@ CREATE TABLE source_history (
   id INT AUTO_INCREMENT PRIMARY KEY,
   source_id INT NOT NULL,
   changed_by INT,
-  change_type ENUM('create','update','transfer','measurement','leak_test','conditioning','disposal') NOT NULL,
+  change_type ENUM('create','update','transfer','measurement','leak_test','conditioning','disposal','photo') NOT NULL,
   field_changed VARCHAR(100),
   previous_value TEXT,
   new_value TEXT,
@@ -218,4 +218,20 @@ CREATE TABLE source_history (
   FOREIGN KEY (changed_by) REFERENCES users(id),
   INDEX idx_history_source (source_id),
   INDEX idx_history_date (changed_at)
+);
+
+-- ============================================================
+-- 8. SOURCE PHOTOS (multiple photos per source/device)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS source_photos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  source_id INT NOT NULL,
+  photo_path VARCHAR(255) NOT NULL,
+  caption VARCHAR(200),
+  uploaded_by INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE,
+  FOREIGN KEY (uploaded_by) REFERENCES users(id),
+  INDEX idx_photos_source (source_id)
 );

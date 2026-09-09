@@ -17,18 +17,51 @@ function toTbq(activity, unit) {
   return activity * (UNIT_TO_TBQ[unit] || 0);
 }
 
+async function resolveOwnerId(name) {
+  if (name == null || String(name).trim() === '') return null;
+  const n = String(name).trim();
+  const [rows] = await pool.query('SELECT id FROM institutions WHERE name = ? LIMIT 1', [n]);
+  if (rows[0]) return rows[0].id;
+  const [res] = await pool.query('INSERT INTO institutions (name) VALUES (?)', [n]);
+  return res.insertId;
+}
+
 class Source {
   static readonlyFields = ['id', 'created_at', 'updated_at', 'source_classification', 'created_by'];
+
+  // Normalizes a create/update payload: empty strings become NULL (strict SQL mode
+  // rejects '' for DATE/DECIMAL columns), and free-text owner names are resolved
+  // to institution ids (auto-creating the institution when the name is new).
+  static async sanitize(data) {
+    const out = {};
+    for (const [k, v] of Object.entries(data)) {
+      if (v === undefined) continue;
+      out[k] = v === '' ? null : v;
+    }
+    if (out.original_owner_name !== undefined) {
+      out.original_owner_id = await resolveOwnerId(out.original_owner_name);
+      delete out.original_owner_name;
+    } else if (out.original_owner_id != null) {
+      out.original_owner_id = Number(out.original_owner_id) || null;
+    }
+    if (out.current_owner_name !== undefined) {
+      out.current_owner_id = await resolveOwnerId(out.current_owner_name);
+      delete out.current_owner_name;
+    } else if (out.current_owner_id != null) {
+      out.current_owner_id = Number(out.current_owner_id) || null;
+    }
+    return out;
+  }
 
   static async create(data, userId) {
     const dValue = await DValue.findById(data.radionuclide_id);
     if (!dValue) throw new Error(`Invalid radionuclide_id: ${data.radionuclide_id}`);
 
     const currentTbq = toTbq(data.current_activity, data.current_activity_unit);
+    if (currentTbq == null) throw new Error('Current activity and unit are required');
     const classification = await DValue.calculateCategory(currentTbq, dValue.d_value_tbq);
 
-    const insertData = { ...data, source_classification: classification, created_by: userId };
-    if (insertData.source_barcode === '') insertData.source_barcode = null;
+    const insertData = await this.sanitize({ ...data, source_classification: classification, created_by: userId });
 
     const [result] = await pool.query(
       `INSERT INTO sources SET ?`,
@@ -46,9 +79,9 @@ class Source {
     const existing = await this.findById(id);
     if (!existing) throw new Error('Source not found');
 
-    const updateFields = { ...data };
+    const updateFields = await this.sanitize({ ...data });
     delete updateFields.source_classification;
-    if (updateFields.source_barcode === '') updateFields.source_barcode = null;
+    delete updateFields.photo_path;
 
     // Recalculate classification if activity or radionuclide changed
     if (data.current_activity !== undefined || data.radionuclide_id !== undefined ||

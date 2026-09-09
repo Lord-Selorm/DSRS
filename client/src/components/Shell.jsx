@@ -48,7 +48,7 @@ export default function Shell() {
             <FiRadio className="text-white" size={17} />
           </div>
           <div className="leading-tight min-w-0">
-            <h1 className="text-sm font-bold text-slate-900 tracking-tight">DSRS</h1>
+            <h1 className="text-sm font-bold text-slate-900 tracking-tight">Ghana DSRS Registry</h1>
             <p className="text-[10px] text-slate-400 leading-tight hidden sm:block">
               National Radioactive Source Registry
             </p>

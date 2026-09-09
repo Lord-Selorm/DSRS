@@ -17,8 +17,11 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
   const [category, setCategory] = useState(null);
   const [ratio, setRatio] = useState(null);
   const [photo, setPhoto] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [existingPhotos, setExistingPhotos] = useState([]);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(isEdit ? 7 : 0);
+  const [activityOverride, setActivityOverride] = useState(isEdit);
   const dValuesRef = useRef([]);
   const formRef = useRef(null);
 
@@ -29,8 +32,8 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     current_activity: '', current_activity_unit: 'GBq', current_activity_date: '',
     source_physical_form: 'sealed', source_length: '', source_diameter: '', source_mass: '',
     manufacturer: '', manufacturer_country: '', source_certificate_no: '',
-    original_owner_id: '', date_licensed: '', original_application: '',
-    current_owner_id: '', date_transferred: '', current_application: '',
+    original_owner: '', date_licensed: '', original_application: '',
+    current_owner: '', date_transferred: '', current_application: '',
     reason_for_transfer: '', transfer_authorization: '', transporter: '',
     storage_facility_unit: '', storage_cage_address: '', date_placed_in_cage: '',
     responsible_officer: '', date_last_verified: '',
@@ -58,10 +61,13 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     api.get('/institutions').then(({ data }) => setInstitutions(data)).catch(() => {});
     if (isEdit) {
       api.get(`/sources/${editId}`).then(({ data }) => {
-        const { history, measurements, leak_tests, radionuclide, d_value_tbq, original_owner_name, current_owner_name, ...clean } = data;
-        setForm({ ...clean });
-        formRef.current = clean;
-        computeCategory(clean, dValuesRef.current);
+        const { history, measurements, leak_tests, radionuclide, d_value_tbq, photos, original_owner_name, current_owner_name, original_owner_id, current_owner_id, ...clean } = data;
+        const mapped = { ...clean, original_owner: original_owner_name || '', current_owner: current_owner_name || '' };
+        setForm({ ...mapped });
+        formRef.current = mapped;
+        setExistingPhotos(photos || []);
+        setActivityOverride(true);
+        computeCategory(mapped, dValuesRef.current);
       }).catch(() => toast.error('Could not load source for editing'));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,6 +92,9 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     if (['current_activity', 'current_activity_unit', 'radionuclide_id'].includes(key)) {
       computeCategory(next, dValues);
     }
+    if (['current_activity', 'current_activity_unit', 'current_activity_date'].includes(key)) {
+      setActivityOverride(true);
+    }
   };
 
   // Decay formula: original activity + activity date + half-life -> current activity
@@ -100,14 +109,47 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     return { value: target, hl: `${hlVal} ${hlUnit}`, hlAuto: !form.half_life_value };
   }, [form.original_activity, form.original_activity_date, form.half_life_value, form.half_life_unit, form.radionuclide_id, form.original_activity_unit, dValues]);
 
+  // Auto-apply decay to Current Activity as the user enters original activity/date/half-life.
+  // Stops as soon as the user edits current activity fields by hand (manual override wins).
+  useEffect(() => {
+    if (!decayPreview || activityOverride) return;
+    const unit = form.original_activity_unit;
+    const next = {
+      ...form,
+      current_activity: trimNum(decayPreview.value),
+      current_activity_unit: unit,
+      current_activity_date: new Date().toISOString().slice(0, 10),
+    };
+    setForm(next);
+    computeCategory(next, dValues);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decayPreview, activityOverride, form.original_activity_unit]);
+
   const applyDecay = () => {
     if (!decayPreview) return;
-    set('current_activity', trimNum(decayPreview.value));
-    set('current_activity_date', new Date().toISOString().slice(0, 10));
+    setActivityOverride(false);
+    const next = {
+      ...form,
+      current_activity: trimNum(decayPreview.value),
+      current_activity_unit: form.original_activity_unit,
+      current_activity_date: new Date().toISOString().slice(0, 10),
+    };
+    setForm(next);
+    computeCategory(next, dValues);
     toast.success('Current activity set from radioactive decay');
   };
 
   const toggle = (s) => setOpen(open === s ? -1 : s);
+
+  const removeExistingPhoto = async (photoId) => {
+    try {
+      await api.delete(`/sources/${editId}/photos/${photoId}`);
+      setExistingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+      toast.success('Photo removed');
+    } catch {
+      toast.error('Could not remove photo');
+    }
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -116,12 +158,16 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
       const payload = {
         ...form,
         radionuclide_id: Number(form.radionuclide_id) || undefined,
-        original_owner_id: Number(form.original_owner_id) || undefined,
-        current_owner_id: Number(form.current_owner_id) || undefined,
+        original_owner_name: form.original_owner.trim() || null,
+        current_owner_name: form.current_owner.trim() || null,
         return_to_supplier: form.return_to_supplier ? 1 : 0,
         reuse: form.reuse ? 1 : 0,
         borehole_disposal_intention: form.borehole_disposal_intention ? 1 : 0,
       };
+      delete payload.original_owner;
+      delete payload.current_owner;
+      delete payload.original_owner_id;
+      delete payload.current_owner_id;
       delete payload.photo_path;
 
       let createdId = editId;
@@ -138,6 +184,12 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         fd.append('photo', photo);
         await api.post(`/sources/${createdId}/photo`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         toast.success('Photo uploaded');
+      }
+      if (photos.length) {
+        const fd = new FormData();
+        photos.forEach((p) => fd.append('photos', p));
+        await api.post(`/sources/${createdId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        toast.success('Additional photos uploaded');
       }
       onSaved?.(createdId);
     } catch (err) {
@@ -197,10 +249,10 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
               ) : (
                 <p className="text-xs text-slate-500">Enter original activity, activity date and half-life to auto-compute the current activity (radioactive decay).</p>
               )}
-              <p className="text-[11px] text-slate-400 mt-0.5">Current activity &amp; D-value set the IAEA source category (A/D ratio) — the badge in the header updates live.</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Current activity is calculated automatically from decay — edit it by hand at any time. Current activity &amp; D-value set the IAEA source category (A/D ratio) in the header.</p>
             </div>
             <button type="button" onClick={applyDecay} disabled={!decayPreview} className="btn-secondary !py-1.5 text-xs shrink-0">
-              Auto-calc →
+              Re-calc →
             </button>
           </div>
         </div>
@@ -226,10 +278,10 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     ) },
     { n: '04', title: 'Ownership & Usage', icon: FiUsers, subtitle: 'Licence, owners, applications and transfers', body: (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <InstitutionSelect label="Original Owner" value={form.original_owner_id} options={institutions} onChange={(v) => set('original_owner_id', v)} />
+        <OwnerInput label="Original Owner" value={form.original_owner} options={institutions} onChange={(v) => set('original_owner', v)} />
         <Field label="Date Licensed" type="date" value={form.date_licensed} onChange={(v) => set('date_licensed', v)} />
         <Field label="Original Application" value={form.original_application} onChange={(v) => set('original_application', v)} />
-        <InstitutionSelect label="Current Owner" value={form.current_owner_id} options={institutions} onChange={(v) => set('current_owner_id', v)} />
+        <OwnerInput label="Current Owner" value={form.current_owner} options={institutions} onChange={(v) => set('current_owner', v)} />
         <Field label="Date Transferred" type="date" value={form.date_transferred} onChange={(v) => set('date_transferred', v)} />
         <Field label="Current Application" value={form.current_application} onChange={(v) => set('current_application', v)} />
         <div>
@@ -289,7 +341,7 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
             <option value="pending">Pending</option><option value="pass">Pass</option><option value="fail">Fail</option>
           </select>
         </div>
-        <Field label="Instrument Calibration Due Date" value={form.leak_test_instrument_calibration_due_date} onChange={(v) => set('leak_test_instrument_calibration_due_date', v)} />
+        <Field label="Leak Test Instrument Calibration Due" type="date" value={form.leak_test_instrument_calibration_due_date} onChange={(v) => set('leak_test_instrument_calibration_due_date', v)} />
         <Field label="Leak Test Method" value={form.leak_test_method} onChange={(v) => set('leak_test_method', v)} />
         <Field label="Leak Test Date" type="date" value={form.leak_test_date} onChange={(v) => set('leak_test_date', v)} />
         <Field label="Leak Test Instrument Used" value={form.leak_test_instrument_used} onChange={(v) => set('leak_test_instrument_used', v)} />
@@ -359,11 +411,11 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
           );
         })}
 
-        {/* Photo */}
+        {/* Photo(s) */}
         <section className="card p-5">
           <div className="flex items-center gap-2 mb-3">
             <FiCamera className="text-brand-600" size={16} />
-            <h3 className="font-semibold text-sm text-slate-800">Device / Source photo</h3>
+            <h3 className="font-semibold text-sm text-slate-800">Device / Source photo(s)</h3>
           </div>
           <div className="flex items-center gap-4">
             <div className="w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
@@ -375,19 +427,48 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
             </div>
             <div className="space-y-2">
               <label className="btn-secondary cursor-pointer">
-                {photo ? 'Replace photo' : 'Upload photo'}
+                {photo ? 'Replace primary photo' : 'Upload primary photo'}
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => setPhoto(e.target.files[0] || null)} />
+              </label>
+              <label className="btn-ghost !px-3 !py-1.5 text-xs cursor-pointer w-full text-center">
+                Add more photos…
+                <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => setPhotos((prev) => [...prev, ...Array.from(e.target.files || [])])} />
               </label>
               {photo && (
                 <button type="button" onClick={() => setPhoto(null)} className="btn-ghost !px-3 !py-1.5 text-xs w-full">
-                  <FiX size={13} /> Remove selection
+                  <FiX size={13} /> Clear primary
                 </button>
               )}
               {isEdit && form.photo_path && !photo && (
-                <p className="text-[11px] text-slate-400">Current photo shown. Select a file to replace it.</p>
+                <p className="text-[11px] text-slate-400">Current primary photo shown. Select a file to replace it.</p>
               )}
             </div>
           </div>
+          {(existingPhotos.length > 0 || photos.length > 0) && (
+            <div className="mt-3 border-t border-slate-100 pt-3">
+              <p className="text-xs text-slate-400 mb-2">Additional photos ({existingPhotos.length + photos.length}) — hover to remove</p>
+              <div className="flex flex-wrap gap-2">
+                {existingPhotos.map((p) => (
+                  <div key={p.id} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
+                    <img src={`/uploads/${p.photo_path}`} alt="source" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => removeExistingPhoto(p.id)} title="Remove photo"
+                      className="absolute top-0 right-0 bg-rose-600 text-white p-0.5 opacity-0 group-hover:opacity-100 rounded-bl">
+                      <FiX size={12} />
+                    </button>
+                  </div>
+                ))}
+                {photos.map((p, i) => (
+                  <div key={`new-${i}`} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
+                    <img src={URL.createObjectURL(p)} alt="source" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))} title="Remove photo"
+                      className="absolute top-0 right-0 bg-rose-600 text-white p-0.5 opacity-0 group-hover:opacity-100 rounded-bl">
+                      <FiX size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Actions */}
@@ -449,14 +530,22 @@ function PairField({ label, value, onChange, unitValue, onUnitChange, units }) {
   );
 }
 
-function InstitutionSelect({ label, value, options, onChange }) {
+function OwnerInput({ label, value, options, onChange }) {
+  const listId = `owner-list-${label.replace(/\W+/g, '')}`;
   return (
     <div>
       <label className="field-label">{label}</label>
-      <select value={value || ''} onChange={(e) => onChange(e.target.value)} className="input">
-        <option value="">None</option>
-        {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-      </select>
+      <input
+        list={listId}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="input"
+        placeholder="Type owner / institution…"
+      />
+      <datalist id={listId}>
+        {options.map((o) => <option key={o.id} value={o.name} />)}
+      </datalist>
+      <p className="text-[11px] text-slate-400 mt-1">Not in the list? The institution is created automatically when you save.</p>
     </div>
   );
 }

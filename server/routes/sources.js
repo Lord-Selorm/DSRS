@@ -8,6 +8,7 @@ const qrcode = require('qrcode');
 const bwipjs = require('bwip-js');
 const upload = require('../middleware/multer');
 const uploadDir = require('../middleware/multer').uploadDir;
+const pool = require('../config/db');
 
 router.get('/d-values', async (req, res) => {
   try {
@@ -55,6 +56,11 @@ router.get('/:id', async (req, res) => {
     source.history = await Source.history(source.id);
     source.measurements = await Source.measurements(source.id);
     source.leak_tests = await Source.leakTests(source.id);
+    const [photos] = await pool.query(
+      'SELECT id, photo_path, caption, uploaded_by, created_at FROM source_photos WHERE source_id = ? ORDER BY id',
+      [source.id]
+    );
+    source.photos = photos;
     res.json(source);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -111,6 +117,55 @@ router.post('/:id/photo', upload.single('photo'), async (req, res) => {
     res.json({ photo_path: req.file.filename });
   } catch (err) {
     if (req.file) fs.unlink(req.file.path, () => {});
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/:id/photos', upload.array('photos', 10), async (req, res) => {
+  try {
+    const source = await Source.findById(req.params.id);
+    if (!source) {
+      (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+      return res.status(404).json({ error: 'Source not found' });
+    }
+    const files = req.files || [];
+    if (files.length === 0) return res.status(400).json({ error: 'No photos provided' });
+
+    const rows = files.map((f) => [source.id, f.filename, req.user.id]);
+    await pool.query('INSERT INTO source_photos (source_id, photo_path, uploaded_by) VALUES ?', [rows]);
+
+    const historyValues = files.map((f) => [source.id, req.user.id, 'photo', 'photo_path', null, f.filename]);
+    await pool.query(
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES ?',
+      [historyValues]
+    );
+
+    res.status(201).json({ added: files.length });
+  } catch (err) {
+    (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/:id/photos/:photoId', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM source_photos WHERE id = ? AND source_id = ?',
+      [req.params.photoId, req.params.id]
+    );
+    const photo = rows[0];
+    if (!photo) return res.status(404).json({ error: 'Photo not found' });
+
+    await pool.query('DELETE FROM source_photos WHERE id = ?', [photo.id]);
+    fs.unlink(path.join(uploadDir, photo.photo_path), () => {});
+
+    await pool.query(
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.params.id, req.user.id, 'photo', 'photo_path', photo.photo_path, null]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });

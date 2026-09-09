@@ -2,7 +2,7 @@ import { toTbq } from './unitConversion';
 
 // Opens a print-formatted report window combining the full end-user register
 // with the complete source inventory grouped by owning end user.
-export function printInventoryReport({ sources, institutions, title = 'DSRS Inventory Report' }) {
+export function printInventoryReport({ sources, institutions, title = 'Ghana DSRS Registry' }) {
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const byOwner = new Map();
@@ -112,7 +112,7 @@ export function printInventoryReport({ sources, institutions, title = 'DSRS Inve
 
     ${sections}
 
-    <div class="foot">DSRS — Disused Sealed Radioactive Sources Inventory System. Confidential regulatory record.</div>
+    <div class="foot">Ghana DSRS Registry — Disused Sealed Radioactive Sources Inventory System. Confidential regulatory record.</div>
   </body></html>`);
   win.document.close();
   win.focus();

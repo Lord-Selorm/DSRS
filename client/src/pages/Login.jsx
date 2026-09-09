@@ -28,7 +28,7 @@ export default function Login() {
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shadow-lg shadow-brand-700/20 mb-3">
             <FiRadio className="text-white" size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">DSRS</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Ghana DSRS Registry</h1>
           <p className="text-sm text-slate-500 mt-1 text-center">
             Disused Sealed Radioactive Sources<br />National Radioactive Source Registry
           </p>
