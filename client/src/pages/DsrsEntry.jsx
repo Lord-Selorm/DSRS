@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -7,8 +7,9 @@ import api from '../services/api';
 import SourceEntryForm from '../components/SourceEntryForm';
 import { toTbq, categoryLabel } from '../utils/unitConversion';
 import { printInventoryReport } from '../utils/printInventoryReport';
+import Pager from '../components/Pager';
 
-const PAGE = 100000;
+const ALL = 100000;
 
 export default function DsrsEntry() {
   const [params, setParams] = useSearchParams();
@@ -18,19 +19,28 @@ export default function DsrsEntry() {
 
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
+  const [categoryTotals, setCategoryTotals] = useState({});
   const [dValues, setDValues] = useState([]);
   const [institutions, setInstitutions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({});
   const [draft, setDraft] = useState({});
   const [showFilters, setShowFilters] = useState(true);
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(25);
 
   useEffect(() => { if (editId) setTab('entry'); }, [editId]);
 
   const load = (f) => {
     setLoading(true);
-    api.get('/sources', { params: { ...f, limit: PAGE, offset: 0 } })
-      .then(({ data }) => { setRows(data.rows); setTotal(data.total); })
+    api.get('/sources', { params: { ...f, limit: size, offset: (page - 1) * size } })
+      .then(({ data }) => {
+        setRows(data.rows);
+        setTotal(data.total);
+        setCategoryTotals((data.categoryTotals || []).reduce((m, r) => ((m[r.source_classification] = r.count), m), {}));
+        const maxPage = Math.max(1, Math.ceil(data.total / size));
+        if (page > maxPage) setPage(maxPage);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -40,32 +50,37 @@ export default function DsrsEntry() {
     api.get('/institutions').then(({ data }) => setInstitutions(data)).catch(() => {});
   }, []);
 
-  useEffect(() => { load(filters); }, [JSON.stringify(filters)]);
+  useEffect(() => { load(filters); }, [page, size, JSON.stringify(filters)]);
 
   const applyFilters = (e) => {
     e?.preventDefault();
     setFilters(draft);
+    setPage(1);
   };
 
   const resetFilters = () => {
     setDraft({});
     setFilters({});
+    setPage(1);
   };
 
   const activeCount = Object.values(filters).filter(Boolean).length;
 
-  const categoryCounts = useMemo(() => {
-    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    rows.forEach((r) => { if (counts[r.source_classification] !== undefined) counts[r.source_classification] += 1; });
-    return counts;
-  }, [rows]);
+  const fetchAll = () =>
+    api.get('/sources', { params: { ...filters, limit: ALL, offset: 0 } }).then((d) => d.data.rows);
 
-  const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(rows);
+  const exportExcel = async () => {
+    const all = await fetchAll();
+    const ws = XLSX.utils.json_to_sheet(all);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sources');
     XLSX.writeFile(wb, `dsrs_inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success('Inventory exported to Excel');
+  };
+
+  const printReport = async () => {
+    const all = await fetchAll();
+    printInventoryReport({ sources: all, institutions });
   };
 
   const rowColor = (cat) => `row-cat-${[1, 2, 3, 4, 5].includes(cat) ? cat : 0}`;
@@ -176,6 +191,7 @@ export default function DsrsEntry() {
                 </tbody>
               </table>
             </div>
+            <Pager total={total} page={page} size={size} onPage={setPage} onSize={setSize} />
             {rows.length === 0 && !loading && (
               <div className="empty-state">
                 <FiInbox size={40} className="mb-3 text-slate-300" />
@@ -224,14 +240,14 @@ export default function DsrsEntry() {
                     </select>
                   </div>
                   <div>
-                    <label className="field-label">Serial / Device / Activity search</label>
+                    <label className="field-label">Quick search</label>
                     <div className="relative">
                       <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                       <input
-                        value={draft.source_serial_no || ''}
-                        onChange={(e) => setDraft({ ...draft, source_serial_no: e.target.value || undefined })}
+                        value={draft.q || ''}
+                        onChange={(e) => setDraft({ ...draft, q: e.target.value || undefined })}
                         className="input pl-9"
-                        placeholder="Serial no. or NRA reg…"
+                        placeholder="Serial, device, barcode, NRA reg, radionuclide…"
                       />
                     </div>
                   </div>
@@ -260,7 +276,7 @@ export default function DsrsEntry() {
                 <button onClick={() => window.print()} className="btn-secondary !py-2">
                   <FiPrinter size={14} /> Print / PDF
                 </button>
-                <button onClick={() => printInventoryReport({ sources: rows, institutions })} className="btn-secondary !py-2">
+                <button onClick={() => printReport()} className="btn-secondary !py-2">
                   <FiFileText size={14} /> Report
                 </button>
               </div>
@@ -277,12 +293,12 @@ export default function DsrsEntry() {
                   <div key={c} className="flex items-center gap-2 text-sm">
                     <span className={`w-2.5 h-2.5 rounded-full ${catDot[c]}`} />
                     <span className="text-slate-500 flex-1">Category {c}</span>
-                    <span className="font-semibold text-slate-800">{categoryCounts[c]}</span>
+                    <span className="font-semibold text-slate-800">{categoryTotals[c] || 0}</span>
                   </div>
                 ))}
-                {total > 0 && (categoryCounts[1] + categoryCounts[2]) > 0 && (
+                {total > 0 && (categoryTotals[1] + categoryTotals[2]) > 0 && (
                   <p className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 text-xs text-rose-600">
-                    <FiAlertTriangle size={13} /> {categoryCounts[1] + categoryCounts[2]} high-risk source(s)
+                    <FiAlertTriangle size={13} /> {(categoryTotals[1] || 0) + (categoryTotals[2] || 0)} high-risk source(s)
                   </p>
                 )}
               </div>

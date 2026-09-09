@@ -211,6 +211,33 @@ test('search filters by radionuclide and partial serial', async () => {
   assert.strictEqual(bySerial.data.rows[0].id, testSourceId);
 });
 
+test('list paginates with limit/offset and returns category totals', async () => {
+  const page1 = await api('/api/sources?limit=2&offset=0');
+  assert.strictEqual(page1.status, 200);
+  assert.strictEqual(page1.data.rows.length, 2);
+  assert.ok(Number(page1.data.total) >= 2);
+  assert.ok(Array.isArray(page1.data.categoryTotals));
+
+  const page2 = await api('/api/sources?limit=2&offset=2');
+  assert.strictEqual(page2.status, 200);
+  assert.strictEqual(page2.data.rows.length, 2);
+  assert.notStrictEqual(page2.data.rows[0].id, page1.data.rows[0].id);
+});
+
+test('generic q search covers serial and owner name, high_risk keeps cat 1-2', async () => {
+  assert.ok(testSourceId, 'requires previous test');
+  const byQ = await api(`/api/sources?q=${createStamp}`);
+  assert.strictEqual(byQ.status, 200);
+  assert.strictEqual(byQ.data.total, 1);
+  assert.strictEqual(byQ.data.rows[0].id, testSourceId);
+
+  const risky = await api('/api/sources?high_risk=1&limit=100&offset=0');
+  assert.strictEqual(risky.status, 200);
+  for (const row of risky.data.rows) {
+    assert.ok(row.source_classification === 1 || row.source_classification === 2);
+  }
+});
+
 // ---------------------------------------------------------------
 // QR + barcode rendering
 // ---------------------------------------------------------------

@@ -119,9 +119,18 @@ class Source {
       where.push('d.radionuclide LIKE ?');
       values.push(`%${filters.radionuclide}%`);
     }
-    if (filters.source_classification) {
+    if (filters.high_risk === '1') {
+      where.push('s.source_classification IN (1, 2)');
+    } else if (filters.source_classification) {
       where.push('s.source_classification = ?');
       values.push(filters.source_classification);
+    }
+    if (filters.q) {
+      where.push(
+        `(s.source_serial_no LIKE ? OR s.device_serial_no LIKE ? OR s.nra_registration_no LIKE ? OR s.source_barcode LIKE ?
+          OR d.radionuclide LIKE ? OR c.name LIKE ? OR s.storage_facility_unit LIKE ? OR s.storage_cage_address LIKE ?)`
+      );
+      values.push(...Array(8).fill(`%${filters.q}%`));
     }
     if (filters.current_owner_id) {
       where.push('s.current_owner_id = ?');
@@ -158,11 +167,20 @@ class Source {
     );
 
     const [countRows] = await pool.query(
-      `SELECT COUNT(*) AS total FROM sources s JOIN d_values d ON s.radionuclide_id = d.id ${whereSql}`,
+      `SELECT COUNT(*) AS total FROM sources s JOIN d_values d ON s.radionuclide_id = d.id
+       LEFT JOIN institutions c ON s.current_owner_id = c.id ${whereSql}`,
       values
     );
 
-    return { rows, total: countRows[0].total };
+    const [categoryTotals] = await pool.query(
+      `SELECT source_classification, COUNT(*) AS count
+       FROM sources s JOIN d_values d ON s.radionuclide_id = d.id
+       LEFT JOIN institutions c ON s.current_owner_id = c.id ${whereSql}
+       GROUP BY source_classification`,
+      values
+    );
+
+    return { rows, total: countRows[0].total, categoryTotals };
   }
 
   static async history(sourceId) {

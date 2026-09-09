@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -7,56 +7,77 @@ import api from '../services/api';
 import { toTbq, categoryLabel } from '../utils/unitConversion';
 import { formatDate } from '../utils/unitConversion';
 import { printInventoryReport } from '../utils/printInventoryReport';
+import Pager from '../components/Pager';
 
-const PAGE = 100000;
+const ALL = 100000;
 
 export default function InventoryPreview() {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [term, setTerm] = useState('');
+  const [q, setQ] = useState('');
   const [filters, setFilters] = useState({});
   const [panelOpen, setPanelOpen] = useState(false);
   const [dValues, setDValues] = useState([]);
   const [institutions, setInstitutions] = useState([]);
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(25);
 
-  const load = () => {
-    setLoading(true);
-    api.get('/sources', { params: { ...filters, limit: PAGE, offset: 0 } })
-      .then(({ data }) => { setRows(data.rows); setTotal(data.total); })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  useEffect(() => {
+    const t = setTimeout(() => setQ(term.trim()), 300);
+    return () => clearTimeout(t);
+  }, [term]);
 
   useEffect(() => {
     api.get('/sources/d-values').then(({ data }) => setDValues(data)).catch(() => {});
     api.get('/institutions').then(({ data }) => setInstitutions(data)).catch(() => {});
   }, []);
 
-  useEffect(() => { load(); }, [JSON.stringify(filters)]);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    api.get('/sources', { params: { ...filters, q: q || undefined, limit: size, offset: (page - 1) * size } })
+      .then(({ data }) => {
+        if (!alive) return;
+        setRows(data.rows);
+        setTotal(data.total);
+        const maxPage = Math.max(1, Math.ceil(data.total / size));
+        if (page > maxPage) setPage(maxPage);
+      })
+      .catch(console.error)
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [page, size, q, JSON.stringify(filters)]);
 
-  const searchable = useMemo(() => {
-    let out = rows;
-    if (filters.high_risk === '1') {
-      out = out.filter((r) => r.source_classification === 1 || r.source_classification === 2);
-    }
-    const q = term.trim().toLowerCase();
-    if (!q) return out;
-    return out.filter((r) =>
-      [r.source_serial_no, r.device_serial_no, r.nra_registration_no, r.source_barcode, r.radionuclide, r.current_owner_name, r.storage_facility_unit]
-        .some((v) => v && String(v).toLowerCase().includes(q))
-    );
-  }, [rows, term, filters.high_risk]);
+  const set = (key, value) => setFilters((f) => ({ ...f, [key]: value || undefined }));
 
-  const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(searchable);
+  const fetchAll = () =>
+    api.get('/sources', { params: { ...filters, q: q || undefined, limit: ALL, offset: 0 } }).then((d) => d.data.rows);
+
+  const exportExcel = async () => {
+    const all = await fetchAll();
+    const ws = XLSX.utils.json_to_sheet(all);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
     XLSX.writeFile(wb, `dsrs_inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success('Inventory exported to Excel');
   };
 
-  const set = (key, value) => setFilters((f) => ({ ...f, [key]: value || undefined }));
+  const printReport = async () => {
+    const all = await fetchAll();
+    printInventoryReport({ sources: all, institutions });
+  };
+
+  const resetAll = () => {
+    setFilters({});
+    setTerm('');
+    setQ('');
+    setPage(1);
+    setPanelOpen(false);
+  };
 
   const rowColor = (cat) => `row-cat-${[1, 2, 3, 4, 5].includes(cat) ? cat : 0}`;
 
@@ -68,13 +89,13 @@ export default function InventoryPreview() {
           <p className="text-sm text-slate-500 mt-0.5">Read-only view of all registered sources · {total} records</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => printInventoryReport({ sources: searchable, institutions })} className="btn-secondary"><FiFileText size={15} /> Report (PDF)</button>
+          <button onClick={printReport} className="btn-secondary"><FiFileText size={15} /> Report (PDF)</button>
           <button onClick={exportExcel} className="btn-secondary"><FiDownload size={15} /> Excel</button>
           <button onClick={() => window.print()} className="btn-secondary"><FiPrinter size={15} /> Print</button>
           <button onClick={() => setPanelOpen(!panelOpen)} className={`btn-secondary ${panelOpen ? '!border-brand-500 !text-brand-700' : ''}`}>
-            <FiSliders size={15} /> Filters {Object.values(filters).filter(Boolean).length > 0 && (
+            <FiSliders size={15} /> Filters {activeFilterCount > 0 && (
               <span className="ml-0.5 w-4 h-4 rounded-full bg-brand-600 text-white text-[10px] flex items-center justify-center font-bold">
-                {Object.values(filters).filter(Boolean).length}
+                {activeFilterCount}
               </span>
             )}
           </button>
@@ -94,7 +115,7 @@ export default function InventoryPreview() {
             />
           </div>
           {term && (
-            <button type="button" onClick={() => setTerm('')} className="btn-ghost !px-2.5" title="Clear search">
+            <button type="button" onClick={() => { setTerm(''); setQ(''); }} className="btn-ghost !px-2.5" title="Clear search">
               <FiX size={15} />
             </button>
           )}
@@ -141,10 +162,7 @@ export default function InventoryPreview() {
             </div>
             <div>
               <label className="field-label">&nbsp;</label>
-              <button
-                onClick={() => { setFilters({}); setTerm(''); setPanelOpen(false); }}
-                className="btn-ghost w-full !py-2 text-xs"
-              >
+              <button onClick={resetAll} className="btn-ghost w-full !py-2 text-xs">
                 Reset all
               </button>
             </div>
@@ -172,7 +190,7 @@ export default function InventoryPreview() {
               </tr>
             </thead>
             <tbody>
-              {searchable.map((s) => (
+              {rows.map((s) => (
                 <tr key={s.id} className={rowColor(s.source_classification)}>
                   <td className="font-mono font-semibold text-slate-900">{s.source_serial_no || `#${s.id}`}</td>
                   <td className="font-mono text-slate-500">{s.device_serial_no || '—'}</td>
@@ -203,11 +221,12 @@ export default function InventoryPreview() {
             </tbody>
           </table>
         </div>
-        {searchable.length === 0 && !loading && (
+        <Pager total={total} page={page} size={size} onPage={setPage} onSize={setSize} />
+        {rows.length === 0 && !loading && (
           <div className="empty-state">
             <FiInbox size={40} className="mb-3 text-slate-300" />
             <p className="font-medium text-slate-500">Nothing to preview</p>
-            <p className="text-sm mt-1">Register sources in the DSRS Entry tab.</p>
+            <p className="text-sm mt-1">Register sources in the DSRS Entry tab — or reset your filters.</p>
           </div>
         )}
         {loading && (
