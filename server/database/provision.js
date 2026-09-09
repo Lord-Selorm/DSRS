@@ -26,7 +26,7 @@ async function main() {
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT || 3306,
     multipleStatements: true,
-    ...(process.env.DB_SSL === 'true' ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } } : {}),
+    ...(process.env.DB_SSL === 'true' ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' } } : {}),
   });
   console.log('Connected to host', process.env.DB_HOST);
 
