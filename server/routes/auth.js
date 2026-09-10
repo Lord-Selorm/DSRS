@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
 
 router.post('/password', authRequired, async (req, res) => {
   try {
-    const { current_password, new_password } = req.body;
+    const { current_password, new_password, new_username } = req.body;
     if (!current_password || !new_password) {
       return res.status(400).json({ error: 'Current and new password are required' });
     }
@@ -66,8 +66,35 @@ router.post('/password', authRequired, async (req, res) => {
     const valid = await bcrypt.compare(current_password, user.password_hash);
     if (!valid) return res.status(400).json({ error: 'Current password is incorrect' });
 
-    await User.update(user.id, { password_hash: await bcrypt.hash(new_password, 10), must_change_password: 0 });
-    res.json({ ok: true });
+    const updates = { password_hash: await bcrypt.hash(new_password, 10), must_change_password: 0 };
+
+    if (new_username !== undefined && String(new_username).trim() !== '' && String(new_username).trim() !== user.username) {
+      const uname = String(new_username).trim();
+      if (!/^[A-Za-z0-9_.-]{3,32}$/.test(uname)) {
+        return res.status(400).json({ error: 'Username must be 3–32 characters: letters, numbers, or . _ -' });
+      }
+      const dup = await User.findByUsername(uname);
+      if (dup) return res.status(400).json({ error: `The username "${uname}" is already taken` });
+      updates.username = uname;
+    }
+
+    await User.update(user.id, updates);
+
+    const fresh = await User.findById(user.id);
+    const token = jwt.sign(
+      { id: fresh.id, username: fresh.username, role: fresh.role, full_name: fresh.full_name },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+    );
+
+    res.json({
+      ok: true,
+      token,
+      user: {
+        id: fresh.id, username: fresh.username, full_name: fresh.full_name, email: fresh.email, role: fresh.role,
+        must_change_password: false,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

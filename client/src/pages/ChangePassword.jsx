@@ -3,18 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiLock, FiShield, FiKey } from 'react-icons/fi';
+import { FiLock, FiShield, FiKey, FiUser } from 'react-icons/fi';
+
+const USERNAME_RE = /^[A-Za-z0-9_.-]{3,32}$/;
 
 export default function ChangePassword({ forced }) {
-  const { user, updateUser } = useAuth();
+  const { user, setSession } = useAuth();
   const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState('');
+  const [username, setUsername] = useState(user?.username || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    const uname = username.trim();
+    if (!uname || !USERNAME_RE.test(uname)) {
+      toast.error('Username must be 3–32 characters: letters, numbers, or . _ -');
+      return;
+    }
     if (newPassword.length < 8) {
       toast.error('New password must be at least 8 characters');
       return;
@@ -23,18 +31,18 @@ export default function ChangePassword({ forced }) {
       toast.error('New passwords do not match');
       return;
     }
-    if (!forced && newPassword === currentPassword) {
-      toast.error('New password must be different from the current one');
-      return;
-    }
     setSaving(true);
     try {
-      await api.post('/auth/password', { current_password: currentPassword, new_password: newPassword });
-      updateUser({ ...user, must_change_password: false });
-      toast.success(forced ? 'Password set. Welcome!' : 'Password changed successfully');
+      const { data } = await api.post('/auth/password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+        new_username: uname,
+      });
+      setSession(data);
+      toast.success(forced ? 'Login set up. Welcome!' : 'Credentials updated successfully');
       navigate('/');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Could not change password');
+      toast.error(err.response?.data?.error || 'Could not update credentials');
     } finally {
       setSaving(false);
     }
@@ -50,17 +58,31 @@ export default function ChangePassword({ forced }) {
             <FiShield className="text-white" size={26} />
           </div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            {forced ? 'Set your password' : 'Change password'}
+            {forced ? 'Set up your login' : 'Update credentials'}
           </h1>
           <p className="text-sm text-slate-500 mt-1 text-center">
             {forced
-              ? 'For security, you must choose your own password before continuing.'
-              : 'Choose a new password for your account.'}
+              ? 'Choose your own username and password before continuing.'
+              : 'Change your username and/or password. Leave the username as is to keep it.'}
           </p>
         </div>
 
         <div className="card p-6 shadow-panel">
           <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <label className="field-label">Username</label>
+              <div className="relative">
+                <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input pl-10"
+                  placeholder="Choose your username"
+                  required
+                />
+              </div>
+            </div>
             <div>
               <label className="field-label">Current password</label>
               <div className="relative">
@@ -107,7 +129,7 @@ export default function ChangePassword({ forced }) {
               </div>
             </div>
             <button type="submit" disabled={saving} className="btn-primary w-full !py-2.5">
-              {saving ? 'Saving…' : forced ? 'Set password & continue' : 'Change password'}
+              {saving ? 'Saving…' : forced ? 'Set login & continue' : 'Save changes'}
             </button>
             {!forced && (
               <button type="button" onClick={onCancel} className="btn-secondary w-full">

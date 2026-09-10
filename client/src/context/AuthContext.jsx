@@ -31,6 +31,12 @@ export function AuthProvider({ children }) {
     setUser(next);
   };
 
+  const setSession = ({ token, user: nextUser }) => {
+    localStorage.setItem('dsrs_token', token);
+    localStorage.setItem('dsrs_user', JSON.stringify(nextUser));
+    setUser(nextUser);
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('dsrs_token');
     const storedUser = localStorage.getItem('dsrs_user');
@@ -40,7 +46,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, setSession, loading }}>
       {children}
     </AuthContext.Provider>
   );

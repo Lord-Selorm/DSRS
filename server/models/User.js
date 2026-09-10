@@ -20,7 +20,7 @@ class User {
   }
 
   static async update(id, fields) {
-    const allowed = ['full_name', 'email', 'role', 'is_active', 'password_hash', 'must_change_password'];
+    const allowed = ['username', 'full_name', 'email', 'role', 'is_active', 'password_hash', 'must_change_password'];
     const updates = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {

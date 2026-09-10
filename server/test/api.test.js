@@ -97,6 +97,44 @@ test('demo login returns a token', async () => {
   token = data.token;
 });
 
+test('duplicate username is rejected when changing credentials', async () => {
+  const { status } = await api('/api/auth/password', {
+    method: 'POST',
+    body: { current_password: DEMO_PASSWORD, new_password: 'SomeNewPass!2026', new_username: 'admin' },
+  });
+  assert.strictEqual(status, 400);
+});
+
+test('user can set own username + password on forced setup, then login with the new username', async () => {
+  const uname = `setown_${Date.now().toString(36)}`;
+  const pass = 'BrandNew#Pass123';
+  const { status, data } = await api('/api/auth/password', {
+    method: 'POST',
+    body: { current_password: DEMO_PASSWORD, new_password: pass, new_username: uname },
+  });
+  assert.strictEqual(status, 200);
+  assert.strictEqual(data.user.username, uname);
+  assert.strictEqual(data.user.must_change_password, false);
+  assert.ok(data.token);
+
+  const login = await api('/api/auth/login', {
+    method: 'POST',
+    token: false,
+    body: { username: uname, password: pass },
+  });
+  assert.strictEqual(login.status, 200);
+  assert.strictEqual(login.data.user.username, uname);
+
+  // restore demo credentials for other tests
+  token = data.token;
+  const restore = await api('/api/auth/password', {
+    method: 'POST',
+    body: { current_password: pass, new_password: DEMO_PASSWORD, new_username: DEMO_USERNAME },
+  });
+  assert.strictEqual(restore.status, 200);
+  token = restore.data.token;
+});
+
 test('non-admin cannot list users', async () => {
   const { status } = await api('/api/users');
   assert.strictEqual(status, 403);
