@@ -2,6 +2,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const app = require('../index');
 const pool = require('../config/db');
+const XLSX = require('xlsx');
 
 const DEMO_USERNAME = process.env.DEMO_USERNAME || 'demo';
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Demo2026!';
@@ -22,7 +23,7 @@ before(async () => {
 });
 
 after(async () => {
-  await pool.query("DELETE FROM sources WHERE source_barcode LIKE 'TEST-%' OR source_serial_no LIKE 'TEST-%' OR nra_registration_no LIKE '%TEST-%'");
+  await pool.query("DELETE FROM sources WHERE source_barcode LIKE 'TEST-%' OR source_serial_no LIKE '%TEST-%' OR source_serial_no LIKE 'IMP-TEST-%' OR nra_registration_no LIKE '%TEST-%'");
   await pool.end();
   await new Promise((resolve) => server.close(resolve));
 });
@@ -30,11 +31,11 @@ after(async () => {
 async function api(path, opts = {}) {
   const headers = { ...(opts.headers || {}) };
   if (opts.token !== false && token) headers.Authorization = `Bearer ${token}`;
-  if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (opts.body !== undefined && !opts.raw) headers['Content-Type'] = 'application/json';
   const res = await fetch(`${base}${path}`, {
     method: opts.method || 'GET',
     headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    body: opts.body !== undefined ? (opts.raw ? opts.body : JSON.stringify(opts.body)) : undefined,
   });
   const ct = res.headers.get('content-type') || '';
   const data = ct.includes('application/json')
@@ -287,6 +288,53 @@ async function readPng(path) {
   assert.strictEqual(res.data.buffer.readUInt32BE(0), 0x89504e47, 'not a PNG signature');
   return res.data.buffer;
 }
+
+test('bulk import registers sources from an xlsx workbook and reports bad rows', async () => {
+  const stamp = Date.now().toString(36);
+  const ws = XLSX.utils.json_to_sheet([
+    {
+      'Source Serial No.': `IMP-TEST-${stamp}`,
+      Radionuclide: 'Co-60',
+      'Original Activity': 1,
+      'Original Activity Unit': 'GBq',
+      'Original Activity Date': '2020-01-01',
+      'Current Activity': 0.9,
+      'Current Activity Unit': 'GBq',
+      'Current Activity Date': '2026-01-01',
+      Date: 'not-a-column',
+    },
+    {
+      'Source Serial No.': `IMP-TEST-${stamp}-BAD`,
+      Radionuclide: 'NotARealNuclide',
+      'Current Activity': 1,
+    },
+    {
+      'Source Serial No.': `IMP-TEST-${stamp}-NOACT`,
+      Radionuclide: 'Cs-137',
+    },
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sources');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  const fd = new FormData();
+  fd.append('file', new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `imp-${stamp}.xlsx`);
+
+  const { status, data } = await api('/api/sources/import', { method: 'POST', raw: true, body: fd });
+  assert.strictEqual(status, 201);
+  assert.strictEqual(data.created, 1);
+  assert.strictEqual(data.skipped, 2);
+  assert.ok(data.errors.some((e) => /not-a-column/i.test(e.reason) === false));
+  assert.ok(data.errors.some((e) => e.reason.includes('unknown radionuclide')));
+  assert.ok(data.errors.some((e) => e.reason.includes('missing current activity')));
+  assert.ok(Array.isArray(data.unmappedHeaders) && data.unmappedHeaders.includes('Date'));
+
+  const listed = await api('/api/sources');
+  assert.strictEqual(listed.status, 200);
+  const found = listed.data.rows.find((r) => r.source_serial_no === `IMP-TEST-${stamp}`);
+  assert.ok(found, 'imported source should be listed');
+  assert.strictEqual(found.radionuclide, 'Co-60');
+});
 
 test('QR code is generated as PNG', async () => {
   assert.ok(testSourceId, 'requires previous test');

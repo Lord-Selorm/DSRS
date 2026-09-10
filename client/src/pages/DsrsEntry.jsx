@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { FiFilter, FiDownload, FiPrinter, FiSearch, FiEye, FiEdit, FiInbox, FiRefreshCw, FiAlertTriangle, FiPlus, FiList, FiFileText } from 'react-icons/fi';
+import { FiFilter, FiDownload, FiPrinter, FiSearch, FiEye, FiEdit, FiInbox, FiRefreshCw, FiAlertTriangle, FiPlus, FiList, FiFileText, FiUpload } from 'react-icons/fi';
 import api from '../services/api';
 import SourceEntryForm from '../components/SourceEntryForm';
+import ImportModal from '../components/ImportModal';
 import { toTbq, categoryLabel } from '../utils/unitConversion';
 import { printInventoryReport } from '../utils/printInventoryReport';
 import Pager from '../components/Pager';
@@ -28,6 +29,8 @@ export default function DsrsEntry() {
   const [showFilters, setShowFilters] = useState(true);
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(25);
+  const [reloadTick, setReloadTick] = useState(0);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => { if (editId) setTab('entry'); }, [editId]);
 
@@ -54,7 +57,7 @@ export default function DsrsEntry() {
     const controller = new AbortController();
     load(filters, controller.signal);
     return () => controller.abort();
-  }, [page, size, JSON.stringify(filters)]);
+  }, [page, size, reloadTick, JSON.stringify(filters)]);
 
   const applyFilters = (e) => {
     e?.preventDefault();
@@ -106,7 +109,11 @@ export default function DsrsEntry() {
           <button onClick={() => setParams({}, { replace: true })} className="btn-primary">
             <FiRefreshCw size={15} /> Back to new entry
           </button>
-        ) : null}
+        ) : (
+          <button onClick={() => setImportOpen(true)} className="btn-secondary">
+            <FiUpload size={15} /> Bulk import
+          </button>
+        )}
       </div>
 
       {/* Tabs: keep registering and inventory separate */}
@@ -310,6 +317,12 @@ export default function DsrsEntry() {
           </aside>
         </div>
       )}
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={() => { setReloadTick((t) => t + 1); setTab('inventory'); }}
+      />
     </div>
   );
 }

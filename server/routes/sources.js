@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 const Source = require('../models/Source');
 const DValue = require('../models/DValue');
 const qrcode = require('qrcode');
@@ -9,6 +10,17 @@ const bwipjs = require('bwip-js');
 const upload = require('../middleware/multer');
 const uploadDir = require('../middleware/multer').uploadDir;
 const pool = require('../config/db');
+const { importSources } = require('../utils/sourceImport');
+
+const importUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!['.xlsx', '.xls', '.csv'].includes(ext)) return cb(new Error('Only .xlsx, .xls or .csv files are allowed'));
+    cb(null, true);
+  },
+});
 
 router.get('/d-values', async (req, res) => {
   try {
@@ -44,6 +56,17 @@ router.post('/', async (req, res) => {
   try {
     const id = await Source.create(req.body, req.user.id);
     res.status(201).json({ id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/import', importUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const result = await importSources(req.file.buffer, ext, req.user.id);
+    res.status(201).json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
