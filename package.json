@@ -10,6 +10,8 @@
     "build:client": "cd client && npm run build",
     "start": "node server/index.js",
     "start:electron": "electron .",
+    "rebuild:electron": "cd server && npx electron-rebuild -f -w better-sqlite3",
+    "rebuild:node": "cd server && npm rebuild better-sqlite3",
     "db:init": "cd server && npm run db:init",
     "db:seed": "cd server && npm run db:seed",
     "db:provision": "cd server && npm run db:provision",
@@ -21,5 +23,8 @@
   "dependencies": {
     "concurrently": "^8.2.2",
     "electron": "^28.1.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.0"
   }
 }

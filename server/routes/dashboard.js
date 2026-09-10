@@ -3,6 +3,14 @@ const router = express.Router();
 const pool = require('../config/db');
 const Source = require('../models/Source');
 
+const day = (offset) => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+};
+const todayStr = () => day(0);
+const inDaysStr = (n) => day(n);
+
 const ownerJoin = `
   FROM sources s
   JOIN d_values d ON s.radionuclide_id = d.id
@@ -30,8 +38,9 @@ router.get('/', async (req, res) => {
                 c.name AS current_owner_name
          ${ownerJoin}
          WHERE s.leak_test_instrument_calibration_due_date IS NOT NULL
-           AND s.leak_test_instrument_calibration_due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)
-         ORDER BY s.leak_test_instrument_calibration_due_date`
+           AND s.leak_test_instrument_calibration_due_date BETWEEN ? AND ?
+         ORDER BY s.leak_test_instrument_calibration_due_date`,
+        [todayStr(), inDaysStr(90)]
       ),
     ];
 

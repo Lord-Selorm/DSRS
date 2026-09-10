@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { uuid } = require('../utils/uuid');
 
 class Institution {
   static async list() {
@@ -14,8 +15,8 @@ class Institution {
 static async create(data) {
     const { name, code, address, contact_person, contact_phone, contact_email, license_number, rpo_rpe_name } = data;
     const [result] = await pool.query(
-      'INSERT INTO institutions (name, code, address, contact_person, contact_phone, contact_email, license_number, rpo_rpe_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, code, address, contact_person, contact_phone, contact_email, license_number, rpo_rpe_name]
+      'INSERT INTO institutions (sync_uuid, name, code, address, contact_person, contact_phone, contact_email, license_number, rpo_rpe_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [uuid(), name, code, address, contact_person, contact_phone, contact_email, license_number, rpo_rpe_name]
     );
     return result.insertId;
   }

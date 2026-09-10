@@ -25,6 +25,38 @@ export default function Shell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const mustChange = !!user?.must_change_password;
+  const [sync, setSync] = useState({ enabled: false, online: false, syncing: false });
+
+  useEffect(() => {
+    if (!window.dsrs?.isElectron) return;
+    let alive = true;
+    const refresh = async () => {
+      try {
+        const resp = await fetch('/api/sync/status', { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (alive) setSync(data);
+      } catch { /* server starting */ }
+    };
+    refresh();
+    const t = setInterval(refresh, 15000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+
+  const onSyncNow = async () => {
+    setSync((s) => ({ ...s, syncing: true }));
+    try {
+      const resp = await fetch('/api/sync/run', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+      });
+      if (resp.ok) setSync(await resp.json());
+    } catch { /* ignore */ }
+    setSync((s) => ({ ...s, syncing: false }));
+  };
+
+  const syncLabel = sync.syncing ? 'Syncing…' : sync.online ? `Synced ${sync.lastSyncAt ? new Date(sync.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}` : 'Offline';
+  const syncDot = sync.syncing ? 'bg-amber-400 animate-pulse' : sync.online ? 'bg-emerald-500' : 'bg-rose-400';
 
   useEffect(() => {
     const onClick = (e) => {
@@ -72,6 +104,19 @@ export default function Shell() {
             </NavLink>
           ))}
         </nav>
+
+        {window.dsrs?.isElectron && (
+          <button
+            onClick={onSyncNow}
+            title={sync.enabled ? 'Last checked: ' + (sync.lastCheckedAt || '—') : 'Sync unavailable'}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border ${
+              sync.online ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-600'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${syncDot}`} />
+            {syncLabel}
+          </button>
+        )}
 
         {/* Account */}
         <div className="relative" ref={menuRef}>

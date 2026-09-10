@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
+const { migrateInto } = require('./migrate-sync');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -53,6 +54,10 @@ async function main() {
   } else {
     console.log('Schema already present, skipping.');
   }
+
+  // 1.5 Offline-sync schema (idempotent)
+  await migrateInto(conn, DB_NAME);
+  console.log('Sync schema present.');
 
   // 2. Reference data: d-values
   const [[dCount]] = await conn.query('SELECT COUNT(*) AS c FROM d_values');

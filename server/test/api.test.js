@@ -98,6 +98,15 @@ test('demo login returns a token', async () => {
   token = data.token;
 });
 
+test('GET /api/sync/status reports main-store engine and requires auth', async () => {
+  const unauth = await api('/api/sync/status', { token: false });
+  assert.strictEqual(unauth.status, 401);
+  const { status, data } = await api('/api/sync/status');
+  assert.strictEqual(status, 200);
+  assert.strictEqual(typeof data.enabled, 'boolean');
+  assert.strictEqual(typeof data.syncing, 'boolean');
+});
+
 test('duplicate username is rejected when changing credentials', async () => {
   const { status } = await api('/api/auth/password', {
     method: 'POST',
