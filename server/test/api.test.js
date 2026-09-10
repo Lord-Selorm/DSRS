@@ -336,6 +336,34 @@ test('bulk import registers sources from an xlsx workbook and reports bad rows',
   assert.strictEqual(found.radionuclide, 'Co-60');
 });
 
+test('bulk import auto-detects a category banner row above the real headers', async () => {
+  const stamp = Date.now().toString(36) + 'b';
+  const aoa = [
+    ['Unique ID variables', null, null, null, 'Radionuclide Variables', null],
+    ['Device Serial No.', 'Source serial No.', 'NRA Registration No.', 'Source barcode', 'Radionuclide', 'Current Activity', 'Source Certficate No.'],
+    ['IMP-BANNER-DEV', `IMP-TEST-${stamp}`, 'NRA/B/1', 'SRC-BANNER', 'Co-60', 0.5, 'SRC-CERT/1'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sources');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  const fd = new FormData();
+  fd.append('file', new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `banner-${stamp}.xlsx`);
+
+  const { status, data } = await api('/api/sources/import', { method: 'POST', raw: true, body: fd });
+  assert.strictEqual(status, 201);
+  assert.strictEqual(data.created, 1);
+  assert.strictEqual(data.skipped, 0);
+  assert.ok(data.unmappedHeaders.includes('Source Certficate No.'), 'unrecognised header labels surface as unmapped');
+
+  const listed = await api('/api/sources');
+  const found = listed.data.rows.find((r) => r.source_serial_no === `IMP-TEST-${stamp}`);
+  assert.ok(found, 'banner-format import should register the source');
+  assert.strictEqual(found.device_serial_no, 'IMP-BANNER-DEV');
+  assert.strictEqual(found.nra_registration_no, 'NRA/B/1');
+});
+
 test('QR code is generated as PNG', async () => {
   assert.ok(testSourceId, 'requires previous test');
   await readPng(`/api/sources/${testSourceId}/qrcode`);

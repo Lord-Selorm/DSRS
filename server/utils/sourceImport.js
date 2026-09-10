@@ -122,22 +122,55 @@ function trimCell(value) {
   return typeof value === 'string' ? value.trim() : value;
 }
 
-async function importSources(buffer, ext, userId) {
+async function importSources(buffer, ext, userId, opts = {}) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) throw new Error('The file has no sheets');
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: null });
+  const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: null });
 
-  if (rows.length === 0) throw new Error('No data rows found (header row required)');
+  while (aoa.length && aoa[aoa.length - 1].every((c) => c === null || c === undefined || String(c).trim() === '')) aoa.pop();
+  if (!aoa.length) throw new Error('No data rows found (header row required)');
 
-  // Map headers -> fields
-  const headers = Object.keys(rows[0] || {});
+  const maxCols = Math.max(...aoa.map((r) => r.length));
+  const labelAt = (row) => Array.from({ length: maxCols }, (_, ci) => (row[ci] == null ? '' : String(row[ci]).trim()));
+  const scoreRow = (labels) => labels.reduce((n, l) => n + (l && matchField(l) ? 1 : 0), 0);
+
+  // Some templates (e.g. the DSRS inventory spreadsheet) carry a category banner row
+  // above the real column labels, so pick the top row that maps to the most fields.
+  let headerIdx;
+  if (opts.headerRow && Number.isInteger(Number(opts.headerRow))) {
+    headerIdx = Math.max(0, Number(opts.headerRow) - 1);
+    if (headerIdx >= aoa.length) throw new Error('headerRow is out of range');
+  } else {
+    let best = 0;
+    let bestScore = -1;
+    for (let i = 0; i < Math.min(3, aoa.length - 1); i++) {
+      const score = scoreRow(labelAt(aoa[i]));
+      if (score > bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
+    headerIdx = best;
+  }
+
+  const headers = labelAt(aoa[headerIdx]);
   const mapped = {};
-  headers.forEach((h) => {
+  const mappedIdx = {};
+  headers.forEach((h, ci) => {
+    if (!h) return;
     const field = matchField(h);
-    if (field) mapped[h] = field;
+    if (field) {
+      mapped[h] = field;
+      mappedIdx[ci] = field;
+    }
   });
-  const unmapped = headers.filter((h) => !matchField(h));
+  const unmapped = headers.filter((h) => h && !matchField(h));
+
+  const dataRows = aoa
+    .slice(headerIdx + 1)
+    .filter((r) => r.some((c) => c !== null && c !== undefined && String(c).trim() !== ''));
+  if (!dataRows.length) throw new Error('No data rows found below the header row');
 
   const [dValueRows] = await pool.query('SELECT id, radionuclide, d_value_tbq FROM d_values');
   const dValues = dValueRows.map((d) => ({ ...d, radionuclide: String(d.radionuclide).toLowerCase() }));
@@ -145,13 +178,13 @@ async function importSources(buffer, ext, userId) {
   const errors = [];
   let created = 0;
 
-  for (let i = 0; i < rows.length; i++) {
-    const raw = rows[i];
-    const rowNo = i + 2;
+  for (let i = 0; i < dataRows.length; i++) {
+    const raw = dataRows[i];
+    const rowNo = headerIdx + i + 2;
     const payload = {};
 
-    for (const [header, field] of Object.entries(mapped)) {
-      const v = raw[header];
+    for (const [ci, field] of Object.entries(mappedIdx)) {
+      const v = raw[ci];
       if (v === null || v === undefined || String(v).trim() === '') continue;
       if (DATE_FIELDS.includes(field)) {
         payload[field] = coerceDate(v);
@@ -192,7 +225,7 @@ async function importSources(buffer, ext, userId) {
 
   return {
     created,
-    skipped: rows.length - created,
+    skipped: dataRows.length - created,
     errors,
     unmappedHeaders: unmapped,
     mappedHeaders: Object.keys(mapped),
