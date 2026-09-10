@@ -183,8 +183,8 @@ class Source {
     }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const limit = pagination.limit || 50;
-    const offset = pagination.offset || 0;
+    const limit = Math.max(1, Number(pagination.limit) || 25);
+    const offset = Math.max(0, Number(pagination.offset) || 0);
 
     const [rows] = await pool.query(
       `SELECT s.*, d.radionuclide, d.d_value_tbq,

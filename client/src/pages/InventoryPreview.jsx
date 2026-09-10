@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -31,25 +31,32 @@ export default function InventoryPreview() {
     return () => clearTimeout(t);
   }, [term]);
 
+  // Reset to page 1 whenever the search term or filters change
+  const prevQuery = useRef('');
+  useEffect(() => {
+    const sig = JSON.stringify({ q, filters });
+    if (prevQuery.current && prevQuery.current !== sig) setPage(1);
+    prevQuery.current = sig;
+  }, [q, filters]);
+
   useEffect(() => {
     api.get('/sources/d-values').then(({ data }) => setDValues(data)).catch(() => {});
     api.get('/institutions').then(({ data }) => setInstitutions(data)).catch(() => {});
   }, []);
 
   useEffect(() => {
-    let alive = true;
+    const controller = new AbortController();
     setLoading(true);
-    api.get('/sources', { params: { ...filters, q: q || undefined, limit: size, offset: (page - 1) * size } })
+    api.get('/sources', { params: { ...filters, q: q || undefined, limit: size, offset: (page - 1) * size }, signal: controller.signal })
       .then(({ data }) => {
-        if (!alive) return;
         setRows(data.rows);
         setTotal(data.total);
         const maxPage = Math.max(1, Math.ceil(data.total / size));
         if (page > maxPage) setPage(maxPage);
       })
-      .catch(console.error)
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .catch((err) => { if (err.name !== 'CanceledError' && err.name !== 'AbortError') console.error(err); })
+      .finally(() => setLoading(false));
+    return () => controller.abort();
   }, [page, size, q, JSON.stringify(filters)]);
 
   const set = (key, value) => setFilters((f) => ({ ...f, [key]: value || undefined }));

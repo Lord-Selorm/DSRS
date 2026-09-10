@@ -31,9 +31,9 @@ export default function DsrsEntry() {
 
   useEffect(() => { if (editId) setTab('entry'); }, [editId]);
 
-  const load = (f) => {
+  const load = (f, signal) => {
     setLoading(true);
-    api.get('/sources', { params: { ...f, limit: size, offset: (page - 1) * size } })
+    api.get('/sources', { params: { ...f, limit: size, offset: (page - 1) * size }, signal })
       .then(({ data }) => {
         setRows(data.rows);
         setTotal(data.total);
@@ -41,7 +41,7 @@ export default function DsrsEntry() {
         const maxPage = Math.max(1, Math.ceil(data.total / size));
         if (page > maxPage) setPage(maxPage);
       })
-      .catch(console.error)
+      .catch((err) => { if (err.name !== 'CanceledError' && err.name !== 'AbortError') console.error(err); })
       .finally(() => setLoading(false));
   };
 
@@ -50,7 +50,11 @@ export default function DsrsEntry() {
     api.get('/institutions').then(({ data }) => setInstitutions(data)).catch(() => {});
   }, []);
 
-  useEffect(() => { load(filters); }, [page, size, JSON.stringify(filters)]);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(filters, controller.signal);
+    return () => controller.abort();
+  }, [page, size, JSON.stringify(filters)]);
 
   const applyFilters = (e) => {
     e?.preventDefault();
