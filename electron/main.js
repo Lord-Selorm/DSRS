@@ -18,6 +18,10 @@ function createWindow() {
     },
   });
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log(`[electron] window loaded ${mainWindow.webContents.getURL()}`);
+  });
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
