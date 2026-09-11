@@ -243,12 +243,16 @@ test('update recalculates category and appends history', async () => {
   // 0.03 TBq -> A/D = 1 -> Cat 3
   const { status } = await api(`/api/sources/${testSourceId}`, {
     method: 'PUT',
-    body: { current_activity: 0.03, current_activity_unit: 'TBq', current_owner_id: 1 },
+    body: { current_activity: 0.03, current_activity_unit: 'TBq', current_owner_name: 'Test Transfer Institution' },
   });
   assert.strictEqual(status, 200);
   const { data } = await api(`/api/sources/${testSourceId}`);
   assert.strictEqual(data.source_classification, 3);
   assert.ok((data.history || []).some((h) => h.field_changed === 'current_activity'));
+  // Owner transfer is logged with a readable institution name, not an id
+  const transfer = (data.history || []).find((h) => h.field_changed === 'current_owner');
+  assert.ok(transfer, 'expected a current_owner transfer event');
+  assert.ok(transfer.new_value.includes('Test Transfer Institution'), `got ${transfer.new_value}`);
 });
 
 test('search filters by radionuclide and partial serial', async () => {

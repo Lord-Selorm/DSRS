@@ -121,6 +121,30 @@ class Source {
       }
     }
 
+    // Translate owner id changes to institution names so the trace shows a readable
+    // "Original owner / Current owner" history through transfer stages.
+    if (historyRows.some(([k]) => k === 'current_owner_id' || k === 'original_owner_id')) {
+      const idKeys = [...new Set(historyRows.flatMap(([k, a, b]) =>
+        (k === 'current_owner_id' || k === 'original_owner_id') ? [String(a), String(b)] : [])
+      )].map(Number).filter(Boolean);
+      if (idKeys.length > 0) {
+        const [institutions] = await pool.query(
+          `SELECT id, name FROM institutions WHERE id IN (${idKeys.map(() => '?').join(',')})`,
+          idKeys
+        );
+        const names = new Map(institutions.map((i) => [Number(i.id), i.name]));
+        for (const row of historyRows) {
+          if (row[0] === 'current_owner_id' || row[0] === 'original_owner_id') {
+            const [, oldId, newId] = row;
+            const label = row[0] === 'current_owner_id' ? 'current_owner' : 'original_owner';
+            row[0] = label;
+            row[1] = names.get(Number(oldId)) || (oldId ? `institution #${oldId}` : '—');
+            row[2] = names.get(Number(newId)) || (newId ? `institution #${newId}` : '—');
+          }
+        }
+      }
+    }
+
     await pool.query('UPDATE sources SET ? WHERE id = ?', [updateFields, id]);
 
     if (historyRows.length > 0) {
