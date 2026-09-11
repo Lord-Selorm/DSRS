@@ -18,7 +18,7 @@ const TEMPLATE_HEADERS = [
   'Leak Test Result', 'Leak Test Date', 'Leak Test Instrument Used',
   'Leak Test Instrument Calibration Due', 'Conditioning Status', 'Conditioning Date', 'Capsule No./ID',
   'Capsule Height (mm)', 'Capsule Ext. Diameter (mm)', 'Concrete Drum / Waste Pkg No.',
-  'Borehole Disposal Intention', 'Return to Supplier', 'Reuse',
+  'Borehole Disposal Intention', 'Return to Supplier', 'Reuse', 'Decay Storage',
 ];
 
 const EXAMPLE_ROW = {
@@ -56,6 +56,9 @@ const EXAMPLE_ROW = {
   'Leak Test Result': 'pending',
   'Conditioning Status': 'none',
   'Borehole Disposal Intention': 'no',
+  'Return to Supplier': 'no',
+  'Reuse': 'no',
+  'Decay Storage': 'no',
 };
 
 export default function ImportModal({ open, onClose, onImported }) {

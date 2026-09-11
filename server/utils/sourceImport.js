@@ -62,6 +62,7 @@ const FIELD_HEADERS = {
   borehole_disposal_intention: ['boreholedisposalintention', 'boreholeintention'],
   return_to_supplier: ['returntosupplier'],
   reuse: ['reuse'],
+  decay_storage: ['decaystorage', 'decaystore'],
 };
 
 const DATE_FIELDS = [
@@ -188,7 +189,7 @@ async function importSources(buffer, ext, userId, opts = {}) {
       if (v === null || v === undefined || String(v).trim() === '') continue;
       if (DATE_FIELDS.includes(field)) {
         payload[field] = coerceDate(v);
-      } else if (['borehole_disposal_intention', 'return_to_supplier', 'reuse'].includes(field)) {
+      } else if (['borehole_disposal_intention', 'return_to_supplier', 'reuse', 'decay_storage'].includes(field)) {
         payload[field] = coerceBool(v);
       } else {
         payload[field] = trimCell(v);

@@ -103,6 +103,7 @@ export default function Traceability() {
               {source.contamination_status === 'contaminated' && <span className="badge-rose">Contaminated</span>}
               {source.source_integrity === 'damaged' && <span className="badge-red">Damaged</span>}
               {source.borehole_disposal_intention ? <span className="badge-amber">Borehole intended</span> : null}
+              {source.decay_storage ? <span className="badge-blue">Decay storage</span> : null}
               <span className="badge-teal">{source.conditioning_status}</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-3">
@@ -385,6 +386,7 @@ function DetailGroups({ source }) {
       ['Capsule ext. diameter', source.capsule_external_diameter ? `${source.capsule_external_diameter} mm` : null],
       ['Concrete drum / waste pkg', source.concrete_drum_no],
       ['Borehole disposal intention', source.borehole_disposal_intention ? 'Yes' : 'No'],
+      ['Decay storage', source.decay_storage ? 'Yes' : 'No'],
     ]},
   ];
   return (

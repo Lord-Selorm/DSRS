@@ -151,14 +151,14 @@ async function main() {
          source_physical_form, manufacturer, manufacturer_country, source_integrity,
          storage_facility_unit, current_owner_id, current_application, responsible_officer,
          radiation_type, conditioning_status, return_to_supplier, reuse, borehole_disposal_intention,
-         created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         decay_storage, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         device, serial, 'NRA-' + year + '-' + String(inserted + 1).padStart(3, '0'), serial, '1',
         d.id, gbq, 'GBq', new Date(year, 0, 15), gbq, 'GBq', new Date(year, 6, 1), cat,
         'sealed', 'Demo Irradiation Ltd', 'United Kingdom', integrity,
         storage, ownerByName.get(ownerName), app, 'Demonstration Officer', 'gamma',
-        conditioning, 0, 0, 0,
+        conditioning, 0, 0, 0, 0,
         adminRow ? adminRow.id : null,
       ]
     );

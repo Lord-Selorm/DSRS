@@ -134,6 +134,7 @@ CREATE TABLE sources (
   capsule_external_diameter DECIMAL(10,2),
   concrete_drum_no VARCHAR(100),
   borehole_disposal_intention TINYINT(1) DEFAULT 0,
+  decay_storage TINYINT(1) DEFAULT 0,
 
   -- Metadata
   created_by INT,

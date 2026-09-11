@@ -216,6 +216,10 @@ test('create source auto-classifies with unit conversion (GBq -> TBq)', async ()
     nra_registration_no: `NRA/T/${createStamp}`,
     manufacturer: 'Test Manufacturing Ltd',
     storage_facility_unit: 'Test Vault A',
+    return_to_supplier: 1,
+    reuse: 0,
+    decay_storage: 1,
+    borehole_disposal_intention: 0,
   };
   const { status, data } = await api('/api/sources', { method: 'POST', body: payload });
   assert.strictEqual(status, 201);
@@ -229,6 +233,7 @@ test('created source detail has category, join data and audit history', async ()
   assert.strictEqual(data.source_classification, 1);
   assert.strictEqual(data.radionuclide, 'Co-60');
   assert.ok(Number(data.d_value_tbq) > 0);
+  assert.strictEqual(Number(data.decay_storage), 1, 'endpoint checkbox persisted');
   const createEvent = (data.history || []).find((h) => h.change_type === 'create');
   assert.ok(createEvent, 'expected a create audit event');
 });

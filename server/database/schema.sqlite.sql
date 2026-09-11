@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS sources (
   capsule_external_diameter REAL,
   concrete_drum_no TEXT,
   borehole_disposal_intention INTEGER NOT NULL DEFAULT 0,
+  decay_storage INTEGER NOT NULL DEFAULT 0,
   created_by INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),

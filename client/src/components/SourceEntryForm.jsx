@@ -42,7 +42,7 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     source_integrity: 'intact', contamination_status: 'clean', visual_inspection_result: '',
     leak_test_method: '', leak_test_result: 'pending', leak_test_date: '',
     leak_test_instrument_used: '', leak_test_instrument_calibration_due_date: '',
-    return_to_supplier: false, reuse: false,
+    return_to_supplier: false, reuse: false, decay_storage: false,
     conditioning_status: 'none', conditioning_date: '', capsule_no_id: '',
     capsule_height_mm: '', capsule_external_diameter: '', concrete_drum_no: '',
     borehole_disposal_intention: false,
@@ -162,6 +162,7 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         current_owner_name: form.current_owner.trim() || null,
         return_to_supplier: form.return_to_supplier ? 1 : 0,
         reuse: form.reuse ? 1 : 0,
+        decay_storage: form.decay_storage ? 1 : 0,
         borehole_disposal_intention: form.borehole_disposal_intention ? 1 : 0,
       };
       delete payload.original_owner;
@@ -363,6 +364,7 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         <div className="flex gap-6 items-end h-[42px]">
           <Checkbox label="Return to Supplier" checked={form.return_to_supplier} onChange={(v) => set('return_to_supplier', v)} />
           <Checkbox label="Reuse" checked={form.reuse} onChange={(v) => set('reuse', v)} />
+          <Checkbox label="Decay Storage" checked={form.decay_storage} onChange={(v) => set('decay_storage', v)} />
         </div>
         <div className="flex items-end h-[42px]">
           <Checkbox label="Borehole Disposal Intention" checked={form.borehole_disposal_intention} onChange={(v) => set('borehole_disposal_intention', v)} />

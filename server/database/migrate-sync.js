@@ -16,6 +16,7 @@ const COLUMNS = [
   ['source_history', 'sync_uuid', 'VARCHAR(36) NULL'],
   ['source_measurements', 'sync_uuid', 'VARCHAR(36) NULL'],
   ['source_leak_tests', 'sync_uuid', 'VARCHAR(36) NULL'],
+  ['sources', 'decay_storage', 'TINYINT(1) DEFAULT 0'],
 ];
 
 async function migrateInto(conn, dbName) {
