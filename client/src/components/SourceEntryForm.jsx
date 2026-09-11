@@ -13,7 +13,6 @@ const HALF_LIFE_UNITS = ['s', 'min', 'h', 'd', 'yr'];
 export default function SourceEntryForm({ editId, onSaved, onCancel }) {
   const isEdit = Boolean(editId);
   const [dValues, setDValues] = useState([]);
-  const [institutions, setInstitutions] = useState([]);
   const [category, setCategory] = useState(null);
   const [ratio, setRatio] = useState(null);
   const [photo, setPhoto] = useState(null);
@@ -58,7 +57,6 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         if (isEdit && formRef.current) computeCategory(formRef.current, data);
       })
       .catch(() => {});
-    api.get('/institutions').then(({ data }) => setInstitutions(data)).catch(() => {});
     if (isEdit) {
       api.get(`/sources/${editId}`).then(({ data }) => {
         const { history, measurements, leak_tests, radionuclide, d_value_tbq, photos, original_owner_name, current_owner_name, original_owner_id, current_owner_id, ...clean } = data;
@@ -279,10 +277,10 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     ) },
     { n: '04', title: 'Ownership & Usage', icon: FiUsers, subtitle: 'Licence, owners, applications and transfers', body: (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <OwnerInput label="Original Owner" value={form.original_owner} options={institutions} onChange={(v) => set('original_owner', v)} />
+        <Field label="Original Owner" value={form.original_owner} onChange={(v) => set('original_owner', v)} placeholder="Type owner / institution — created automatically if new" />
         <Field label="Date Licensed" type="date" value={form.date_licensed} onChange={(v) => set('date_licensed', v)} />
         <Field label="Original Application" value={form.original_application} onChange={(v) => set('original_application', v)} />
-        <OwnerInput label="Current Owner" value={form.current_owner} options={institutions} onChange={(v) => set('current_owner', v)} />
+        <Field label="Current Owner" value={form.current_owner} onChange={(v) => set('current_owner', v)} placeholder="Type owner / institution — created automatically if new" />
         <Field label="Date Transferred" type="date" value={form.date_transferred} onChange={(v) => set('date_transferred', v)} />
         <Field label="Current Application" value={form.current_application} onChange={(v) => set('current_application', v)} />
         <div>
@@ -489,7 +487,7 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
   );
 }
 
-function Field({ label, value, onChange, type = 'text' }) {
+function Field({ label, value, onChange, type = 'text', placeholder }) {
   return (
     <div>
       <label className="field-label">{label}</label>
@@ -498,6 +496,7 @@ function Field({ label, value, onChange, type = 'text' }) {
         step={type === 'date' ? undefined : 'any'}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
         className="input"
       />
     </div>
@@ -528,26 +527,6 @@ function PairField({ label, value, onChange, unitValue, onUnitChange, units }) {
           {units.map((u) => <option key={u} value={u}>{u}</option>)}
         </select>
       </div>
-    </div>
-  );
-}
-
-function OwnerInput({ label, value, options, onChange }) {
-  const listId = `owner-list-${label.replace(/\W+/g, '')}`;
-  return (
-    <div>
-      <label className="field-label">{label}</label>
-      <input
-        list={listId}
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        className="input"
-        placeholder="Type owner / institution…"
-      />
-      <datalist id={listId}>
-        {options.map((o) => <option key={o.id} value={o.name} />)}
-      </datalist>
-      <p className="text-[11px] text-slate-400 mt-1">Not in the list? The institution is created automatically when you save.</p>
     </div>
   );
 }

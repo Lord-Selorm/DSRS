@@ -70,6 +70,17 @@ class Source {
       [insertData]
     );
     const sourceId = result.insertId;
+
+    // Auto-generate a scannable barcode when none was provided:
+    // DSRS-<6-digit id><check digit> (check digit = sum of id digits mod 10)
+    const providedBarcode = data.source_barcode != null ? String(data.source_barcode).trim() : '';
+    if (!providedBarcode) {
+      const padded = String(sourceId).padStart(6, '0');
+      const check = [...padded].reduce((acc, ch) => acc + Number(ch), 0) % 10;
+      const generated = `DSRS-${padded}${check}`;
+      await pool.query('UPDATE sources SET source_barcode = ? WHERE id = ?', [generated, sourceId]);
+    }
+
     await pool.query(
       'INSERT INTO source_history (sync_uuid, source_id, changed_by, change_type, field_changed, previous_value, new_value, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [uuid(), sourceId, userId, 'create', 'source_record', null, data.source_serial_no || data.source_barcode || `#${sourceId}`, 'Source registered']

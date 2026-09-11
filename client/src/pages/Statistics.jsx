@@ -65,6 +65,14 @@ export default function Statistics() {
     return Object.entries(map).sort(([, a], [, b]) => b - a);
   }, [filtered]);
 
+  const radionuclideActivity = useMemo(() => {
+    const map = {};
+    filtered.forEach((r) => {
+      map[r.radionuclide] = (map[r.radionuclide] || 0) + (toTbq(r.current_activity, r.current_activity_unit) || 0);
+    });
+    return Object.entries(map).sort(([, a], [, b]) => b - a);
+  }, [filtered]);
+
   const scatterData = useMemo(() => {
     const pts = filtered
       .map((r) => {
@@ -277,6 +285,42 @@ export default function Statistics() {
                     }}
                     options={{
                       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} source(s)` } } },
+                      scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
+                      maintainAspectRatio: false,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="card overflow-hidden">
+            <header className="card-header">
+              <div className="flex items-center gap-2">
+                <FiBarChart2 size={16} className="text-brand-600" />
+                <h2 className="font-semibold text-sm text-slate-800">Total activity per radionuclide</h2>
+              </div>
+              <span className="text-xs text-slate-400">{formatTbq(radionuclideActivity.reduce((a, [, v]) => a + v, 0))} total</span>
+            </header>
+            <div className="p-5">
+              {filtered.length === 0 ? (
+                <EmptyCharts />
+              ) : (
+                <div className="h-72">
+                  <Bar
+                    data={{
+                      labels: radionuclideActivity.map(([n]) => n),
+                      datasets: [{
+                        label: 'Total activity (TBq)',
+                        data: radionuclideActivity.map(([, v]) => Number(v.toFixed(6))),
+                        backgroundColor: '#7c3aed',
+                        hoverBackgroundColor: '#6d28d9',
+                        borderRadius: 6,
+                        maxBarThickness: 42,
+                      }],
+                    }}
+                    options={{
+                      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => formatTbq(ctx.parsed.y) } } },
                       scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
                       maintainAspectRatio: false,
                     }}

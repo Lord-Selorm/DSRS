@@ -388,7 +388,7 @@ test('barcode is generated as PNG (code128 of source_barcode)', async () => {
   await readPng(`/api/sources/${testSourceId}/barcode`);
 });
 
-test('barcode falls back to source_serial_no', async () => {
+test('blank barcode is auto-generated for a new source', async () => {
   const { data: dValues } = await api('/api/sources/d-values');
   const co60 = dValues.find((d) => d.radionuclide === 'Co-60');
   const created = await api('/api/sources', {
@@ -402,6 +402,8 @@ test('barcode falls back to source_serial_no', async () => {
     },
   });
   assert.strictEqual(created.status, 201);
+  const detail = await api(`/api/sources/${created.data.id}`);
+  assert.match(detail.data.source_barcode, /^DSRS-\d{6}\d$/, 'expected DSRS-<6digits><checkdigit>');
   await readPng(`/api/sources/${created.data.id}/barcode`);
 });
 
