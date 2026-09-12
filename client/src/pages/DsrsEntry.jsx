@@ -307,7 +307,7 @@ export default function DsrsEntry() {
                     <span className="font-semibold text-slate-800">{categoryTotals[c] || 0}</span>
                   </div>
                 ))}
-                {total > 0 && (categoryTotals[1] + categoryTotals[2]) > 0 && (
+                {total > 0 && ((categoryTotals[1] || 0) + (categoryTotals[2] || 0)) > 0 && (
                   <p className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 text-xs text-rose-600">
                     <FiAlertTriangle size={13} /> {(categoryTotals[1] || 0) + (categoryTotals[2] || 0)} high-risk source(s)
                   </p>

@@ -64,6 +64,9 @@ class Source {
 
     const insertData = await this.sanitize({ ...data, source_classification: classification, created_by: userId });
     insertData.sync_uuid = data.sync_uuid || uuid();
+    delete insertData.id;
+    delete insertData.created_at;
+    delete insertData.updated_at;
 
     const [result] = await pool.query(
       `INSERT INTO sources SET ?`,
@@ -95,6 +98,10 @@ class Source {
     const updateFields = await this.sanitize({ ...data });
     delete updateFields.source_classification;
     delete updateFields.photo_path;
+    delete updateFields.id;
+    delete updateFields.created_at;
+    delete updateFields.updated_at;
+    delete updateFields.created_by;
     updateFields.sync_uuid = data.sync_uuid || existing.sync_uuid || uuid();
 
     // Recalculate classification if activity or radionuclide changed
@@ -334,3 +341,4 @@ class Source {
 }
 
 module.exports = Source;
+module.exports.toTbq = toTbq;

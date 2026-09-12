@@ -22,6 +22,11 @@ async function init() {
   await conn.query(seed);
   console.log('Seed data inserted successfully.');
 
+  // Add offline-sync columns/tables (idempotent) so fresh installs can save sources.
+  const { migrateInto } = require('./migrate-sync');
+  await migrateInto(conn, process.env.DB_NAME || 'dsrs_db');
+  console.log('Sync schema columns added.');
+
   await conn.end();
   console.log('Database initialization complete.');
 }

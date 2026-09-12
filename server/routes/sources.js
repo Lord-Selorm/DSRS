@@ -33,10 +33,12 @@ router.get('/d-values', async (req, res) => {
 
 router.post('/calculate-category', async (req, res) => {
   try {
-    const { radionuclide_id, current_activity } = req.body;
+    const { radionuclide_id, current_activity, current_activity_unit = 'TBq' } = req.body;
     const dValue = await DValue.findById(radionuclide_id);
     if (!dValue) return res.status(400).json({ error: 'Invalid radionuclide' });
-    const category = await DValue.calculateCategory(current_activity, dValue.d_value_tbq);
+    const tbq = Source.toTbq(current_activity, current_activity_unit);
+    if (tbq == null) return res.status(400).json({ error: 'Current activity and unit are required' });
+    const category = await DValue.calculateCategory(tbq, dValue.d_value_tbq);
     res.json({ radionuclide: dValue.radionuclide, d_value_tbq: dValue.d_value_tbq, category });
   } catch (err) {
     res.status(500).json({ error: err.message });

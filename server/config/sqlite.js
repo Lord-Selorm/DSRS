@@ -73,6 +73,12 @@ function init(dbFile) {
     raw.exec(fs.readFileSync(SEED, 'utf8'));
   }
 
+  // Idempotent schema upgrades for existing offline DBs.
+  const hasCol = (t, c) => raw.prepare(`PRAGMA table_info(${t})`).all().some((col) => col.name === c);
+  if (!hasCol('sync_events', 'row_uuid')) {
+    raw.exec('ALTER TABLE sync_events ADD COLUMN row_uuid TEXT');
+  }
+
   let suppressSyncLog = false;
   const stmtCache = new Map();
 
@@ -85,20 +91,59 @@ function init(dbFile) {
       stmtCache.set(finalSql, statement);
     }
 
+    // For single-row deletes, capture the row's uuid before it is gone so the
+    // delete event can remove the counterpart row on the cloud too.
+    const preDeleteUuid = (() => {
+      const table = tableOf(finalSql);
+      if (!table || !SYNC_TABLES.includes(table)) return null;
+      const m = /^\s*DELETE/i.exec(finalSql);
+      if (!m) return null;
+      const rowId = rowIdOf(finalSql, finalParams);
+      if (rowId === null || rowId === undefined) return null;
+      const pre = raw.prepare(`SELECT sync_uuid AS u FROM ${table} WHERE id = ?`).get(rowId);
+      return (pre && pre.u) || null;
+    })();
+
     const out = statement.reader ? statement.all(...finalParams) : statement.run(...finalParams);
 
     const table = tableOf(finalSql);
     if (!suppressSyncLog && table && SYNC_TABLES.includes(table)) {
       const op = /INSERT/i.test(finalSql) ? 'insert' : /DELETE/i.test(finalSql) ? 'delete' : 'update';
-      let rowId = null;
-      if (op === 'insert') rowId = out.lastInsertRowid;
-      else rowId = rowIdOf(finalSql, finalParams);
-      if (rowId !== null && rowId !== undefined) {
-        raw.prepare('INSERT INTO sync_events (table_name, row_id, op) VALUES (?, ?, ?)').run(
-          table,
-          typeof rowId === 'bigint' ? Number(rowId) : rowId,
-          op
-        );
+
+      if (op === 'insert' && Array.isArray(params[0]) && Array.isArray(params[0][0])) {
+        // Multi-row `VALUES ?` insert (e.g. source_photos / source_history batches).
+        // better-sqlite3 only exposes the LAST insert rowid, so look up every
+        // fresh row id by the sync_uuid carried in each tuple and log one event
+        // per row — otherwise N-1 rows never replicate to the cloud.
+        const uuids = params[0].map((r) => r[0]).filter((u) => u != null && String(u).trim() !== '');
+        if (uuids.length) {
+          const ins = raw.prepare('INSERT INTO sync_events (table_name, row_id, op) VALUES (?, ?, ?)');
+          const got = raw.prepare(
+            `SELECT id FROM ${table} WHERE sync_uuid IN (${uuids.map(() => '?').join(',')})`
+          ).all(...uuids);
+          for (const g of got) ins.run(table, g.id, 'insert');
+        }
+      } else if (op === 'delete') {
+        const rowId = rowIdOf(finalSql, finalParams);
+        if (rowId !== null && rowId !== undefined) {
+          raw.prepare('INSERT INTO sync_events (table_name, row_id, row_uuid, op) VALUES (?, ?, ?, ?)').run(
+            table,
+            typeof rowId === 'bigint' ? Number(rowId) : rowId,
+            preDeleteUuid,
+            op
+          );
+        }
+      } else {
+        let rowId = null;
+        if (op === 'insert') rowId = out.lastInsertRowid;
+        else rowId = rowIdOf(finalSql, finalParams);
+        if (rowId !== null && rowId !== undefined) {
+          raw.prepare('INSERT INTO sync_events (table_name, row_id, op) VALUES (?, ?, ?)').run(
+            table,
+            typeof rowId === 'bigint' ? Number(rowId) : rowId,
+            op
+          );
+        }
       }
     }
 
@@ -126,7 +171,7 @@ function init(dbFile) {
       }
     },
     pendingEvents: () => raw.prepare(
-      "SELECT id, table_name, row_id, op FROM sync_events WHERE pushed_at IS NULL ORDER BY id"
+      "SELECT id, table_name, row_id, row_uuid, op FROM sync_events WHERE pushed_at IS NULL ORDER BY id"
     ).all(),
     markPushed: (ids) => {
       if (!ids.length) return;

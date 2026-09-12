@@ -90,6 +90,37 @@ test('subsequent push updates instead of duplicating', async () => {
   assert.strictEqual(Number(cloudRows[0].current_activity), 11);
 });
 
+test('multi-row child inserts sync every row (not just the last)', async () => {
+  await local.query("INSERT INTO sources SET ?", {
+    sync_uuid: 'uu-lo-8-000000000000', device_serial_no: 'LOC-STD-2', source_serial_no: 'LOCAL-2',
+    source_barcode: 'LOCAL-BAR-2', radionuclide_id: 8, current_activity: 1, current_activity_unit: 'GBq',
+    source_classification: 3, original_owner_id: 1, current_owner_id: 2, created_by: 1,
+  });
+  const [srcId] = await local.query("SELECT id FROM sources WHERE source_serial_no = 'LOCAL-2'");
+  const rows = [
+    ['uu-lo-p1-000000000000', srcId[0].id, '/tmp/p1.png', 'p1', 1],
+    ['uu-lo-p2-000000000000', srcId[0].id, '/tmp/p2.png', 'p2', 1],
+    ['uu-lo-p3-000000000000', srcId[0].id, '/tmp/p3.png', 'p3', 1],
+  ];
+  await local.query('INSERT INTO source_photos (sync_uuid, source_id, photo_path, caption, uploaded_by) VALUES ?', [rows]);
+
+  const photoEvents = local.pendingEvents().filter((e) => e.table_name === 'source_photos' && e.op === 'insert');
+  assert.strictEqual(photoEvents.length, 3, 'one sync event per photo row');
+
+  const res = await svc.push();
+  assert.ok(res.source_photos >= 3, 'all photo rows pushed');
+  const [cloudPhotos] = await cloud.query('SELECT COUNT(*) AS c FROM source_photos');
+  assert.strictEqual(Number(cloudPhotos[0].c), 3, 'all three photos replicated');
+});
+
+test('deleting a pushed local row deletes the cloud counterpart', async () => {
+  const [src] = await local.query("SELECT id FROM sources WHERE source_serial_no = 'LOCAL-1'");
+  await local.query('DELETE FROM sources WHERE id = ?', [src[0].id]);
+  await svc.push();
+  const [cloudRows] = await cloud.query("SELECT * FROM sources WHERE source_serial_no = 'LOCAL-1'");
+  assert.strictEqual(cloudRows.length, 0, 'deleted row removed from cloud');
+});
+
 test('concurrent cloud change is pulled down when cloud is newer', async () => {
   await cloud.query("UPDATE sources SET current_activity = 42 WHERE source_serial_no = 'CLOUD-2'");
   // ensure cloud updated_at is newer than local

@@ -100,6 +100,18 @@ class SyncService {
     );
   }
 
+  // Deletes a cloud row tracked (or at least tagged) by its sync_uuid and drops
+  // its registry mapping so nothing is left behind in the cloud.
+  async pushDelete(table, rowUuid) {
+    let cloudId = await this.cloudRegistry(table, rowUuid);
+    if (cloudId != null) {
+      await this.cloud.query(`DELETE FROM ${table} WHERE id = ?`, [cloudId]);
+    } else {
+      await this.cloud.query(`DELETE FROM ${table} WHERE sync_uuid = ?`, [rowUuid]);
+    }
+    await this.cloud.query('DELETE FROM sync_registry WHERE table_name = ? AND row_uuid = ?', [table, rowUuid]);
+  }
+
   async push() {
     const m = await this.maps();
     const stats = { institutions: 0, sources: 0, source_photos: 0, source_history: 0, source_measurements: 0, source_leak_tests: 0 };
@@ -118,6 +130,11 @@ class SyncService {
       try {
         const [rows] = await this.local.query(`SELECT * FROM ${table} WHERE id = ?`, [ev.row_id]);
         if (!rows.length) {
+          // Deleting a row that survived a prior push would otherwise leave an
+          // orphan on the cloud: route the delete through the registry.
+          if (ev.op === 'delete' && ev.row_uuid) {
+            await this.pushDelete(table, ev.row_uuid);
+          }
           this.local.markPushed([ev.id]);
           continue;
         }

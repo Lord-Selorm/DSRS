@@ -31,6 +31,8 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
+    const existing = await Institution.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Institution not found' });
     await Institution.update(req.params.id, req.body);
     res.json({ ok: true });
   } catch (err) {

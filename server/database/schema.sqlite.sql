@@ -203,6 +203,7 @@ CREATE TABLE IF NOT EXISTS sync_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   table_name TEXT NOT NULL,
   row_id INTEGER NOT NULL,
+  row_uuid TEXT,
   op TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   pushed_at TEXT

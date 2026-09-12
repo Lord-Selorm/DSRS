@@ -32,7 +32,7 @@ export default function Shell() {
     let alive = true;
     const refresh = async () => {
       try {
-        const resp = await fetch('/api/sync/status', { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } });
+        const resp = await fetch('/api/sync/status', { headers: { Authorization: `Bearer ${localStorage.getItem('dsrs_token') || ''}` } });
         if (!resp.ok) return;
         const data = await resp.json();
         if (alive) setSync(data);
@@ -48,7 +48,7 @@ export default function Shell() {
     try {
       const resp = await fetch('/api/sync/run', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem('dsrs_token') || ''}` },
       });
       if (resp.ok) setSync(await resp.json());
     } catch { /* ignore */ }
