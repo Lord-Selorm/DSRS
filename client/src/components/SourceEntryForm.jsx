@@ -9,6 +9,7 @@ import { toTbq, classifySource, categoryBadge, decayActivity } from '../utils/un
 
 const RADIONUCLIDE_UNITS = ['TBq', 'GBq', 'MBq', 'kBq', 'Bq', 'Ci', 'mCi', 'uCi'];
 const HALF_LIFE_UNITS = ['s', 'min', 'h', 'd', 'yr'];
+const STORAGE_UNITS = ['High Dose Store', 'Decay Store', 'Holding Area'];
 
 export default function SourceEntryForm({ editId, onSaved, onCancel }) {
   const isEdit = Boolean(editId);
@@ -298,7 +299,20 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
     ) },
     { n: '05', title: 'Physical Location & Control', icon: FiMapPin, subtitle: 'Storage, custody and verification', body: (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Field label="Storage Facility Unit" value={form.storage_facility_unit} onChange={(v) => set('storage_facility_unit', v)} />
+        <div>
+          <label className="field-label">Storage Facility Unit</label>
+          <select
+            value={form.storage_facility_unit}
+            onChange={(e) => set('storage_facility_unit', e.target.value)}
+            className="input"
+          >
+            <option value="">Select storage facility…</option>
+            {STORAGE_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+            {form.storage_facility_unit && !STORAGE_UNITS.includes(form.storage_facility_unit) && (
+              <option value={form.storage_facility_unit}>{form.storage_facility_unit}</option>
+            )}
+          </select>
+        </div>
         <Field label="Storage Cage Address" value={form.storage_cage_address} onChange={(v) => set('storage_cage_address', v)} />
         <Field label="Date Placed in Cage" type="date" value={form.date_placed_in_cage} onChange={(v) => set('date_placed_in_cage', v)} />
         <Field label="Responsible Officer" value={form.responsible_officer} onChange={(v) => set('responsible_officer', v)} />
@@ -359,12 +373,10 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         <Field label="Capsule Height (mm)" value={form.capsule_height_mm} onChange={(v) => set('capsule_height_mm', v)} />
         <Field label="Capsule Ext. Diameter (mm)" value={form.capsule_external_diameter} onChange={(v) => set('capsule_external_diameter', v)} />
         <Field label="Concrete Drum / Waste Pkg No." value={form.concrete_drum_no} onChange={(v) => set('concrete_drum_no', v)} />
-        <div className="flex gap-6 items-end h-[42px]">
+        <div className="md:col-span-3 flex flex-wrap items-center gap-x-8 gap-y-2 py-1">
           <Checkbox label="Return to Supplier" checked={form.return_to_supplier} onChange={(v) => set('return_to_supplier', v)} />
           <Checkbox label="Reuse" checked={form.reuse} onChange={(v) => set('reuse', v)} />
           <Checkbox label="Decay Storage" checked={form.decay_storage} onChange={(v) => set('decay_storage', v)} />
-        </div>
-        <div className="flex items-end h-[42px]">
           <Checkbox label="Borehole Disposal Intention" checked={form.borehole_disposal_intention} onChange={(v) => set('borehole_disposal_intention', v)} />
         </div>
       </div>
