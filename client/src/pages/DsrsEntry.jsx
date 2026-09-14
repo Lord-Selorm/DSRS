@@ -95,7 +95,7 @@ export default function DsrsEntry() {
 
   const tabBtn = (active) =>
     `inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-      active ? 'bg-brand-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+      active ? 'bg-brand-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
     }`;
 
   return (
@@ -103,7 +103,7 @@ export default function DsrsEntry() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">DSRS Entry</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Register new sources and manage the national inventory</p>
+          <p className="text-sm text-slate-500 mt-0.5 dark:text-slate-400">Register new sources and manage the national inventory</p>
         </div>
         {editId ? (
           <button onClick={() => setParams({}, { replace: true })} className="btn-primary">
@@ -142,8 +142,8 @@ export default function DsrsEntry() {
           <section className="card overflow-hidden">
             <header className="card-header">
               <div>
-                <h2 className="font-semibold text-sm text-slate-800">All entries</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Rows are color-coded by IAEA source category</p>
+                <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">All entries</h2>
+                <p className="text-xs text-slate-400 mt-0.5 dark:text-slate-500">Rows are color-coded by IAEA source category</p>
               </div>
               <Legend />
             </header>
@@ -166,33 +166,33 @@ export default function DsrsEntry() {
                   {rows.map((s) => (
                     <tr key={s.id} className={rowColor(s.source_classification)}>
                       <td>
-                        <Link to={`/sources/${s.id}`} className="font-mono font-semibold text-slate-900 hover:text-brand-700">{s.source_serial_no || `#${s.id}`}</Link>
-                        {s.no_on_source && <p className="text-[11px] text-slate-400 font-mono">№ {s.no_on_source}</p>}
+                        <Link to={`/sources/${s.id}`} className="font-mono font-semibold text-slate-900 hover:text-brand-700 dark:text-slate-50">{s.source_serial_no || `#${s.id}`}</Link>
+                        {s.no_on_source && <p className="text-[11px] text-slate-400 font-mono dark:text-slate-500">№ {s.no_on_source}</p>}
                       </td>
-                      <td className="font-mono text-slate-500">{s.device_serial_no || '—'}</td>
-                      <td className="font-semibold text-slate-800">{s.radionuclide}</td>
+                      <td className="font-mono text-slate-500 dark:text-slate-400">{s.device_serial_no || '—'}</td>
+                      <td className="font-semibold text-slate-800 dark:text-slate-100">{s.radionuclide}</td>
                       <td>
                         {s.current_activity ? (
-                          <span className="font-mono text-slate-700">
+                          <span className="font-mono text-slate-700 dark:text-slate-300">
                             {Number.isFinite(Number(s.current_activity)) ? Number(s.current_activity).toLocaleString() : s.current_activity} {s.current_activity_unit}
                           </span>
                         ) : '—'}
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500">
                           ≈ {s.current_activity ? formatTbq(toTbq(s.current_activity, s.current_activity_unit)) : '—'}
                         </p>
                       </td>
                       <td>
                         <span className={catBadge(s.source_classification)}>{categoryLabel(s.source_classification)}</span>
                       </td>
-                      <td className="text-slate-600 min-w-[160px]">{s.current_owner_name || '—'}</td>
-                      <td className="text-slate-600">{s.storage_facility_unit || '—'}</td>
+                      <td className="text-slate-600 min-w-[160px] dark:text-slate-300">{s.current_owner_name || '—'}</td>
+                      <td className="text-slate-600 dark:text-slate-300">{s.storage_facility_unit || '—'}</td>
                       <td><CondBadge status={s.conditioning_status} /></td>
                       <td>
                         <div className="flex justify-end gap-1">
-                          <Link to={`/sources/${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50" title="Traceability">
+                          <Link to={`/sources/${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Traceability">
                             <FiEye size={15} />
                           </Link>
-                          <Link to={`/entry?edit=${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50" title="Edit">
+                          <Link to={`/entry?edit=${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Edit">
                             <FiEdit size={15} />
                           </Link>
                         </div>
@@ -205,14 +205,14 @@ export default function DsrsEntry() {
             <Pager total={total} page={page} size={size} onPage={setPage} onSize={setSize} />
             {rows.length === 0 && !loading && (
               <div className="empty-state">
-                <FiInbox size={40} className="mb-3 text-slate-300" />
+                <FiInbox size={40} className="mb-3 text-slate-300 dark:text-slate-600" />
                 <p className="font-medium text-slate-500">No entries match</p>
                 <p className="text-sm mt-1">Register a source in the form tab, or reset the filters.</p>
               </div>
             )}
             {loading && (
               <div className="py-16 flex items-center justify-center">
-                <span className="w-5 h-5 border-2 border-slate-300 border-t-brand-600 rounded-full animate-spin" />
+                <span className="w-5 h-5 border-2 border-slate-300 border-t-brand-600 rounded-full animate-spin dark:border-slate-600" />
               </div>
             )}
           </section>
@@ -220,12 +220,12 @@ export default function DsrsEntry() {
           {/* Right: filters & export */}
           <aside className="space-y-4 xl:sticky xl:top-0">
             <section className="card overflow-hidden">
-              <button onClick={() => setShowFilters(!showFilters)} className="w-full card-header cursor-pointer hover:bg-slate-50 transition-colors">
+              <button onClick={() => setShowFilters(!showFilters)} className="w-full card-header cursor-pointer hover:bg-slate-50 transition-colors dark:hover:bg-slate-800">
                 <div className="flex items-center gap-2">
                   <FiFilter size={16} className="text-brand-600" />
-                  <h2 className="font-semibold text-sm text-slate-800">Filters {activeCount > 0 && <span className="badge-teal ml-1">{activeCount}</span>}</h2>
+                  <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Filters {activeCount > 0 && <span className="badge-teal ml-1">{activeCount}</span>}</h2>
                 </div>
-                <span className="text-xs text-slate-400">{showFilters ? 'hide' : 'show'}</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">{showFilters ? 'hide' : 'show'}</span>
               </button>
               {showFilters && (
                 <form onSubmit={applyFilters} className="p-4 space-y-3">
@@ -277,7 +277,7 @@ export default function DsrsEntry() {
               <header className="card-header">
                 <div className="flex items-center gap-2">
                   <FiDownload size={16} className="text-brand-600" />
-                  <h2 className="font-semibold text-sm text-slate-800">Export inventory</h2>
+                  <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Export inventory</h2>
                 </div>
               </header>
               <div className="p-4 grid grid-cols-3 gap-2">
@@ -291,7 +291,7 @@ export default function DsrsEntry() {
                   <FiFileText size={14} /> Report
                 </button>
               </div>
-              <div className="px-4 pb-4 pt-0 text-[11px] text-slate-400">
+              <div className="px-4 pb-4 pt-0 text-[11px] text-slate-400 dark:text-slate-500">
                 Exports the {total} record(s) shown in the table.
               </div>
             </section>
@@ -303,12 +303,12 @@ export default function DsrsEntry() {
                 {[1, 2, 3, 4, 5].map((c) => (
                   <div key={c} className="flex items-center gap-2 text-sm">
                     <span className={`w-2.5 h-2.5 rounded-full ${catDot[c]}`} />
-                    <span className="text-slate-500 flex-1">Category {c}</span>
-                    <span className="font-semibold text-slate-800">{categoryTotals[c] || 0}</span>
+                    <span className="text-slate-500 flex-1 dark:text-slate-400">Category {c}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">{categoryTotals[c] || 0}</span>
                   </div>
                 ))}
                 {total > 0 && ((categoryTotals[1] || 0) + (categoryTotals[2] || 0)) > 0 && (
-                  <p className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 text-xs text-rose-600">
+                  <p className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 text-xs text-rose-600 dark:border-slate-800 dark:text-rose-400">
                     <FiAlertTriangle size={13} /> {(categoryTotals[1] || 0) + (categoryTotals[2] || 0)} high-risk source(s)
                   </p>
                 )}
@@ -329,13 +329,13 @@ export default function DsrsEntry() {
 
 function catBadge(cat) {
   const colors = {
-    1: 'bg-red-100 text-red-700',
-    2: 'bg-orange-100 text-orange-700',
-    3: 'bg-amber-100 text-amber-800',
-    4: 'bg-sky-100 text-sky-700',
-    5: 'bg-emerald-100 text-emerald-700',
+    1: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+    2: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',
+    3: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
+    4: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+    5: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
   };
-  return `inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[cat] || 'bg-slate-200 text-slate-600'}`;
+  return `inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[cat] || 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`;
 }
 
 function formatTbq(v) {
@@ -361,7 +361,7 @@ function Legend() {
   return (
     <div className="flex items-center gap-3">
       {items.map(([dot, label]) => (
-        <span key={label} className="flex items-center gap-1.5 text-[11px] text-slate-500">
+        <span key={label} className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
           <span className={`w-2 h-2 rounded-full ${dot}`} /> {label}
         </span>
       ))}

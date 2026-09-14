@@ -6,12 +6,17 @@ import html2canvas from 'html2canvas';
 import { FiDownload, FiFilter, FiRefreshCw, FiBarChart2, FiInbox } from 'react-icons/fi';
 import api from '../services/api';
 import { toTbq } from '../utils/unitConversion';
+import { useTheme } from '../context/ThemeContext';
 
 ChartJS.register(ArcElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, ScatterController, BarController, BarElement);
 
 const PAGE = 100000;
 
 export default function Statistics() {
+  const { dark } = useTheme();
+  const tickColor = dark ? '#94a3b8' : '#64748b';
+  const gridColor = dark ? '#334155' : '#f1f5f9';
+  const sliceBorder = dark ? '#0f172a' : '#ffffff';
   const [all, setAll] = useState([]);
   const [institutions, setInstitutions] = useState([]);
   const [dValues, setDValues] = useState([]);
@@ -136,7 +141,7 @@ export default function Statistics() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">Statistics</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Inventory analytics by location and receipt year</p>
+          <p className="text-sm text-slate-500 mt-0.5 dark:text-slate-400">Inventory analytics by location and receipt year</p>
         </div>
         <button onClick={exportImage} className="btn-secondary">
           <FiDownload size={15} /> Export image
@@ -149,7 +154,7 @@ export default function Statistics() {
           <header className="card-header">
             <div className="flex items-center gap-2">
               <FiFilter size={16} className="text-brand-600" />
-              <h2 className="font-semibold text-sm text-slate-800">Filter {activeCount > 0 && <span className="badge-teal ml-1">{activeCount}</span>}</h2>
+              <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Filter {activeCount > 0 && <span className="badge-teal ml-1">{activeCount}</span>}</h2>
             </div>
           </header>
           <div className="p-4 space-y-3">
@@ -216,9 +221,9 @@ export default function Statistics() {
             <header className="card-header">
               <div className="flex items-center gap-2">
                 <FiBarChart2 size={16} className="text-brand-600" />
-                <h2 className="font-semibold text-sm text-slate-800">Sources per storage location</h2>
+                <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Sources per storage location</h2>
               </div>
-              <span className="text-xs text-slate-400">{filtered.length} sources</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{filtered.length} sources</span>
             </header>
             <div className="p-5">
               {filtered.length === 0 ? (
@@ -233,7 +238,7 @@ export default function Statistics() {
                           data: Object.values(locationData),
                           backgroundColor: ['#0e7490', '#f59e0b', '#ef4444', '#10b981', '#7c3aed', '#0284c7', '#f97316', '#64748b'],
                           borderWidth: 2,
-                          borderColor: '#ffffff',
+                          borderColor: sliceBorder,
                         }],
                       }}
                       options={{ cutout: '55%', plugins: { legend: { display: false } }, maintainAspectRatio: false }}
@@ -246,9 +251,9 @@ export default function Statistics() {
                       return (
                         <div key={loc} className="flex items-center gap-2 text-sm">
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: colors[i % colors.length] }} />
-                          <span className="text-slate-600 flex-1 truncate">{loc}</span>
-                          <span className="font-semibold text-slate-800">{count}</span>
-                          <span className="text-slate-400 w-9 text-right">{pct}%</span>
+                          <span className="text-slate-600 flex-1 truncate dark:text-slate-300">{loc}</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-100">{count}</span>
+                          <span className="text-slate-400 w-9 text-right dark:text-slate-500">{pct}%</span>
                         </div>
                       );
                     })}
@@ -262,9 +267,9 @@ export default function Statistics() {
             <header className="card-header">
               <div className="flex items-center gap-2">
                 <FiBarChart2 size={16} className="text-brand-600" />
-                <h2 className="font-semibold text-sm text-slate-800">Sources per radionuclide</h2>
+                <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Sources per radionuclide</h2>
               </div>
-              <span className="text-xs text-slate-400">{filtered.length} sources</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{filtered.length} sources</span>
             </header>
             <div className="p-5">
               {filtered.length === 0 ? (
@@ -285,7 +290,7 @@ export default function Statistics() {
                     }}
                     options={{
                       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} source(s)` } } },
-                      scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
+                      scales: { y: { beginAtZero: true, ticks: { precision: 0, color: tickColor }, grid: { color: gridColor } }, x: { grid: { display: false }, ticks: { color: tickColor } } },
                       maintainAspectRatio: false,
                     }}
                   />
@@ -298,9 +303,9 @@ export default function Statistics() {
             <header className="card-header">
               <div className="flex items-center gap-2">
                 <FiBarChart2 size={16} className="text-brand-600" />
-                <h2 className="font-semibold text-sm text-slate-800">Total activity per radionuclide</h2>
+                <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Total activity per radionuclide</h2>
               </div>
-              <span className="text-xs text-slate-400">{formatTbq(radionuclideActivity.reduce((a, [, v]) => a + v, 0))} total</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{formatTbq(radionuclideActivity.reduce((a, [, v]) => a + v, 0))} total</span>
             </header>
             <div className="p-5">
               {filtered.length === 0 ? (
@@ -321,7 +326,7 @@ export default function Statistics() {
                     }}
                     options={{
                       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => formatTbq(ctx.parsed.y) } } },
-                      scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
+                      scales: { y: { beginAtZero: true, ticks: { precision: 0, color: tickColor }, grid: { color: gridColor } }, x: { grid: { display: false }, ticks: { color: tickColor } } },
                       maintainAspectRatio: false,
                     }}
                   />
@@ -334,9 +339,9 @@ export default function Statistics() {
             <header className="card-header">
               <div className="flex items-center gap-2">
                 <FiBarChart2 size={16} className="text-brand-600" />
-                <h2 className="font-semibold text-sm text-slate-800">Activity vs. registration year</h2>
+                <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Activity vs. registration year</h2>
               </div>
-              <span className="text-xs text-slate-400">per source · category-colored</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">per source · category-colored</span>
             </header>
             <div className="p-5">
               {scatterData.length > 0 ? (
@@ -351,8 +356,8 @@ export default function Statistics() {
                           },
                         }},
                         scales: {
-                          x: { title: { display: true, text: 'Year of receipt' }, grid: { color: '#f1f5f9' } },
-                          y: { title: { display: true, text: 'Activity (TBq)' }, grid: { color: '#f1f5f9' } },
+                          x: { title: { display: true, text: 'Year of receipt', color: tickColor }, grid: { color: gridColor }, ticks: { color: tickColor } },
+                          y: { title: { display: true, text: 'Activity (TBq)', color: tickColor }, grid: { color: gridColor }, ticks: { color: tickColor } },
                         },
                         maintainAspectRatio: false,
                       }}
@@ -371,7 +376,7 @@ export default function Statistics() {
                       <tbody>
                         {byYear.map(([y, v]) => (
                           <tr key={y}>
-                            <td className="font-semibold text-slate-800">{y}</td>
+                            <td className="font-semibold text-slate-800 dark:text-slate-100">{y}</td>
                             <td>{v.count}</td>
                             <td className="font-mono">{formatTbq(v.activity)}</td>
                           </tr>
@@ -400,16 +405,16 @@ function yearOf(r) {
 function SummaryCard({ label, value }) {
   return (
     <div className="card px-4 py-3">
-      <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="text-xl font-bold text-slate-900 mt-0.5">{value}</p>
+      <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">{label}</p>
+      <p className="text-xl font-bold text-slate-900 dark:text-slate-50 mt-0.5">{value}</p>
     </div>
   );
 }
 
 function EmptyCharts() {
   return (
-    <div className="h-56 flex flex-col items-center justify-center text-slate-400">
-      <FiInbox size={34} className="mb-2 text-slate-300" />
+    <div className="h-56 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+      <FiInbox size={34} className="mb-2 text-slate-300 dark:text-slate-600" />
       <p className="text-sm">No sources match the selected filters.</p>
     </div>
   );

@@ -57,10 +57,10 @@ export default function ChangePassword({ forced }) {
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shadow-lg shadow-brand-700/20 mb-3">
             <FiShield className="text-white" size={26} />
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight dark:text-slate-50">
             {forced ? 'Set up your login' : 'Update credentials'}
           </h1>
-          <p className="text-sm text-slate-500 mt-1 text-center">
+          <p className="text-sm text-slate-500 mt-1 text-center dark:text-slate-400">
             {forced
               ? 'Choose your own username and password before continuing.'
               : 'Change your username and/or password. Leave the username as is to keep it.'}

@@ -236,19 +236,19 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
           unitValue={form.current_activity_unit} onUnitChange={(v) => set('current_activity_unit', v)} units={RADIONUCLIDE_UNITS} />
         <Field label="Current Activity Date" type="date" value={form.current_activity_date} onChange={(v) => set('current_activity_date', v)} />
         <div className="md:col-span-3">
-          <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 flex flex-wrap items-center gap-3">
+          <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 flex flex-wrap items-center gap-3 dark:bg-slate-800 dark:border-slate-700">
             <FiActivity size={16} className="text-brand-600 shrink-0" />
             <div className="flex-1 min-w-[220px]">
               {decayPreview ? (
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   Decay from <b>{form.original_activity} {form.original_activity_unit}</b> on <b>{form.original_activity_date}</b>
-                  {' '}(T½ {decayPreview.hl}) → <b className="text-brand-700">≈ {trimNum(decayPreview.value)} {form.original_activity_unit}</b> today.
+                  {' '}(T½ {decayPreview.hl}) → <b className="text-brand-700 dark:text-brand-300">≈ {trimNum(decayPreview.value)} {form.original_activity_unit}</b> today.
                   {decayPreview.hlAuto && ' Half-life taken from the reference table.'}
                 </p>
               ) : (
-                <p className="text-xs text-slate-500">Enter original activity, activity date and half-life to auto-compute the current activity (radioactive decay).</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Enter original activity, activity date and half-life to auto-compute the current activity (radioactive decay).</p>
               )}
-              <p className="text-[11px] text-slate-400 mt-0.5">Current activity is calculated automatically from decay — edit it by hand at any time. Current activity &amp; D-value set the IAEA source category (A/D ratio) in the header.</p>
+              <p className="text-[11px] text-slate-400 mt-0.5 dark:text-slate-500">Current activity is calculated automatically from decay — edit it by hand at any time. Current activity &amp; D-value set the IAEA source category (A/D ratio) in the header.</p>
             </div>
             <button type="button" onClick={applyDecay} disabled={!decayPreview} className="btn-secondary !py-1.5 text-xs shrink-0">
               Re-calc →
@@ -377,13 +377,13 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
       <div className="card overflow-hidden">
         <div className="card-header">
           <div>
-            <h2 className="font-semibold text-sm text-slate-800">{isEdit ? `Edit source ${form.source_serial_no || `#${editId}`}` : 'New source entry'}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{isEdit ? 'Update the record below' : 'Complete the numbered sections to register a source'}</p>
+            <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">{isEdit ? `Edit source ${form.source_serial_no || `#${editId}`}` : 'New source entry'}</h2>
+            <p className="text-xs text-slate-400 mt-0.5 dark:text-slate-500">{isEdit ? 'Update the record below' : 'Complete the numbered sections to register a source'}</p>
           </div>
           {category && (
             <div className="text-right">
               <span className={`${categoryBadge(category)} !text-sm !px-3 !py-1`}>Category {category}</span>
-              {ratio && <p className="text-[11px] text-slate-400 mt-1">A/D ratio {ratio} (auto)</p>}
+              {ratio && <p className="text-[11px] text-slate-400 mt-1 dark:text-slate-500">A/D ratio {ratio} (auto)</p>}
             </div>
           )}
         </div>
@@ -394,17 +394,17 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
           const isOpen = open === Number(n);
           return (
             <section key={n} className="card overflow-hidden">
-              <button type="button" onClick={() => toggle(Number(n))} className="w-full card-header hover:bg-slate-50 transition-colors cursor-pointer text-left">
+<button type="button" onClick={() => toggle(Number(n))} className="w-full card-header hover:bg-slate-50 transition-colors cursor-pointer text-left dark:hover:bg-slate-800">
                 <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center font-mono text-[11px] font-bold">{n}</span>
+                  <span className="w-7 h-7 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center font-mono text-[11px] font-bold dark:bg-brand-500/15 dark:text-brand-300">{n}</span>
                   <div>
-                    <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
+                    <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2 dark:text-slate-100">
                       <Icon size={15} className="text-brand-600" /> {title}
                     </h3>
-                    <p className="text-xs text-slate-400">{subtitle}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{subtitle}</p>
                   </div>
                 </div>
-                <FiChevronDown size={16} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <FiChevronDown size={16} className={`text-slate-400 transition-transform dark:text-slate-500 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
               {isOpen && <div className="p-5">{body}</div>}
             </section>
@@ -415,10 +415,10 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
         <section className="card p-5">
           <div className="flex items-center gap-2 mb-3">
             <FiCamera className="text-brand-600" size={16} />
-            <h3 className="font-semibold text-sm text-slate-800">Device / Source photo(s)</h3>
+            <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Device / Source photo(s)</h3>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
+            <div className="w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0 dark:border-slate-600 dark:bg-slate-800">
               {photo || form.photo_path ? (
                 <img src={photo ? URL.createObjectURL(photo) : `/uploads/${form.photo_path}`} alt="preview" className="w-full h-full object-cover" />
               ) : (
@@ -440,16 +440,16 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
                 </button>
               )}
               {isEdit && form.photo_path && !photo && (
-                <p className="text-[11px] text-slate-400">Current primary photo shown. Select a file to replace it.</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">Current primary photo shown. Select a file to replace it.</p>
               )}
             </div>
           </div>
           {(existingPhotos.length > 0 || photos.length > 0) && (
-            <div className="mt-3 border-t border-slate-100 pt-3">
-              <p className="text-xs text-slate-400 mb-2">Additional photos ({existingPhotos.length + photos.length}) — hover to remove</p>
+            <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+              <p className="text-xs text-slate-400 mb-2 dark:text-slate-500">Additional photos ({existingPhotos.length + photos.length}) — hover to remove</p>
               <div className="flex flex-wrap gap-2">
                 {existingPhotos.map((p) => (
-                  <div key={p.id} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
+                  <div key={p.id} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group dark:border-slate-700">
                     <img src={`/uploads/${p.photo_path}`} alt="source" className="w-full h-full object-cover" />
                     <button type="button" onClick={() => removeExistingPhoto(p.id)} title="Remove photo"
                       className="absolute top-0 right-0 bg-rose-600 text-white p-0.5 opacity-0 group-hover:opacity-100 rounded-bl">
@@ -458,7 +458,7 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
                   </div>
                 ))}
                 {photos.map((p, i) => (
-                  <div key={`new-${i}`} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
+                  <div key={`new-${i}`} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group dark:border-slate-700">
                     <img src={URL.createObjectURL(p)} alt="source" className="w-full h-full object-cover" />
                     <button type="button" onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))} title="Remove photo"
                       className="absolute top-0 right-0 bg-rose-600 text-white p-0.5 opacity-0 group-hover:opacity-100 rounded-bl">
@@ -533,7 +533,7 @@ function PairField({ label, value, onChange, unitValue, onUnitChange, units }) {
 
 function Checkbox({ label, checked, onChange }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
+    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none dark:text-slate-300">
       <input
         type="checkbox"
         checked={Boolean(checked)}

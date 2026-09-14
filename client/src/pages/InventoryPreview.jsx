@@ -93,7 +93,7 @@ export default function InventoryPreview() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">Inventory Preview</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Read-only view of all registered sources · {total} records</p>
+          <p className="text-sm text-slate-500 mt-0.5 dark:text-slate-400">Read-only view of all registered sources · {total} records</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={printReport} className="btn-secondary"><FiFileText size={15} /> Report (PDF)</button>
@@ -129,7 +129,7 @@ export default function InventoryPreview() {
         </form>
 
         {panelOpen && (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <div>
               <label className="field-label">Category</label>
               <select value={filters.source_classification || ''} onChange={(e) => set('source_classification', e.target.value)} className="input">
@@ -156,7 +156,7 @@ export default function InventoryPreview() {
             <div>
               <label className="field-label">High risk only</label>
               <div className="h-[38px] flex items-center">
-                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer dark:text-slate-300">
                   <input
                     type="checkbox"
                     checked={filters.high_risk === '1'}
@@ -199,26 +199,26 @@ export default function InventoryPreview() {
             <tbody>
               {rows.map((s) => (
                 <tr key={s.id} className={rowColor(s.source_classification)}>
-                  <td className="font-mono font-semibold text-slate-900">{s.source_serial_no || `#${s.id}`}</td>
-                  <td className="font-mono text-slate-500">{s.device_serial_no || '—'}</td>
-                  <td className="font-mono text-slate-500">{s.source_barcode || '—'}</td>
-                  <td className="font-mono text-slate-500">{s.nra_registration_no || '—'}</td>
-                  <td className="font-semibold text-slate-800">{s.radionuclide}</td>
-                  <td className="text-slate-600">
+                  <td className="font-mono font-semibold text-slate-900 dark:text-slate-50">{s.source_serial_no || `#${s.id}`}</td>
+                  <td className="font-mono text-slate-500 dark:text-slate-400">{s.device_serial_no || '—'}</td>
+                  <td className="font-mono text-slate-500 dark:text-slate-400">{s.source_barcode || '—'}</td>
+                  <td className="font-mono text-slate-500 dark:text-slate-400">{s.nra_registration_no || '—'}</td>
+                  <td className="font-semibold text-slate-800 dark:text-slate-100">{s.radionuclide}</td>
+                  <td className="text-slate-600 dark:text-slate-300">
                     {s.current_activity ? (
                       <span className="font-mono">{Number(s.current_activity).toLocaleString()} {s.current_activity_unit}</span>
                     ) : '—'}
                     {s.current_activity && (
-                      <span className="text-[11px] text-slate-400"> ({formatTbq(toTbq(s.current_activity, s.current_activity_unit))})</span>
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500"> ({formatTbq(toTbq(s.current_activity, s.current_activity_unit))})</span>
                     )}
                   </td>
                   <td><span className={catBadge(s.source_classification)}>{categoryLabel(s.source_classification)}</span></td>
-                  <td className="min-w-[160px] text-slate-600">{s.current_owner_name || '—'}</td>
-                  <td className="text-slate-600">{s.storage_facility_unit || '—'}</td>
-                  <td className="text-slate-500">{formatDate(s.date_last_verified)}</td>
+                  <td className="min-w-[160px] text-slate-600 dark:text-slate-300">{s.current_owner_name || '—'}</td>
+                  <td className="text-slate-600 dark:text-slate-300">{s.storage_facility_unit || '—'}</td>
+                  <td className="text-slate-500 dark:text-slate-400">{formatDate(s.date_last_verified)}</td>
                   <td>
                     <div className="flex justify-end">
-                      <Link to={`/sources/${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50" title="Traceability">
+                      <Link to={`/sources/${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Traceability">
                         <FiEye size={15} />
                       </Link>
                     </div>
@@ -231,14 +231,14 @@ export default function InventoryPreview() {
         <Pager total={total} page={page} size={size} onPage={setPage} onSize={setSize} />
         {rows.length === 0 && !loading && (
           <div className="empty-state">
-            <FiInbox size={40} className="mb-3 text-slate-300" />
+            <FiInbox size={40} className="mb-3 text-slate-300 dark:text-slate-600" />
             <p className="font-medium text-slate-500">Nothing to preview</p>
             <p className="text-sm mt-1">Register sources in the DSRS Entry tab — or reset your filters.</p>
           </div>
         )}
         {loading && (
           <div className="py-16 flex items-center justify-center">
-            <span className="w-5 h-5 border-2 border-slate-300 border-t-brand-600 rounded-full animate-spin" />
+            <span className="w-5 h-5 border-2 border-slate-300 border-t-brand-600 rounded-full animate-spin dark:border-slate-600" />
           </div>
         )}
       </div>
@@ -248,13 +248,13 @@ export default function InventoryPreview() {
 
 function catBadge(cat) {
   const colors = {
-    1: 'bg-red-100 text-red-700',
-    2: 'bg-orange-100 text-orange-700',
-    3: 'bg-amber-100 text-amber-800',
-    4: 'bg-sky-100 text-sky-700',
-    5: 'bg-emerald-100 text-emerald-700',
+    1: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+    2: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',
+    3: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
+    4: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+    5: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
   };
-  return `inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[cat] || 'bg-slate-200 text-slate-600'}`;
+  return `inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[cat] || 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`;
 }
 
 function formatTbq(v) {

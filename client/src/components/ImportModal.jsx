@@ -121,9 +121,9 @@ export default function ImportModal({ open, onClose, onImported }) {
         <header className="card-header">
           <div className="flex items-center gap-2">
             <FiUpload size={16} className="text-brand-600" />
-            <h2 className="font-semibold text-sm text-slate-800">Bulk import sources</h2>
+            <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Bulk import sources</h2>
           </div>
-          <button onClick={close} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+          <button onClick={close} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800">
             <FiX size={16} />
           </button>
         </header>
@@ -131,21 +131,21 @@ export default function ImportModal({ open, onClose, onImported }) {
         <div className="p-5 space-y-4">
           {phase === 'done' ? (
             <div className="space-y-4">
-              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
-                <FiCheckCircle className="text-emerald-600 shrink-0" size={22} />
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3 dark:bg-emerald-500/10 dark:border-emerald-500/30">
+                <FiCheckCircle className="text-emerald-600 shrink-0 dark:text-emerald-400" size={22} />
                 <div>
-                  <p className="font-semibold text-emerald-800 text-sm">{result.created} source(s) registered</p>
-                  <p className="text-xs text-emerald-700">{result.skipped} row(s) skipped</p>
+                  <p className="font-semibold text-emerald-800 text-sm dark:text-emerald-300">{result.created} source(s) registered</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400">{result.skipped} row(s) skipped</p>
                 </div>
               </div>
               {result.unmappedHeaders?.length > 0 && (
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300">
                   Columns ignored (not recognised): {result.unmappedHeaders.join(', ')}
                 </div>
               )}
               {result.errors?.length > 0 && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600">
+                <div className="border border-slate-200 rounded-xl overflow-hidden dark:border-slate-700">
+                  <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 dark:bg-slate-800/60 dark:border-slate-800 dark:text-slate-300">
                     Rows with problems ({result.errors.length})
                   </div>
                   <div className="max-h-56 overflow-auto">
@@ -153,8 +153,8 @@ export default function ImportModal({ open, onClose, onImported }) {
                       <tbody>
                         {result.errors.slice(0, 50).map((e, i) => (
                           <tr key={i}>
-                            <td className="text-slate-400 w-16">Row {e.row}</td>
-                            <td className="text-slate-600">{e.reason}</td>
+                            <td className="text-slate-400 w-16 dark:text-slate-500">Row {e.row}</td>
+                            <td className="text-slate-600 dark:text-slate-300">{e.reason}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -189,21 +189,21 @@ export default function ImportModal({ open, onClose, onImported }) {
                 onDrop={(e) => { e.preventDefault(); e.stopPropagation(); pick(e.dataTransfer.files); }}
                 onClick={() => inputRef.current?.click()}
                 className={`rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-colors ${
-                  file ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-300 bg-slate-50 hover:border-brand-400'
+                  file ? 'border-emerald-300 bg-emerald-50/50 dark:border-emerald-500/40 dark:bg-emerald-500/10' : 'border-slate-300 bg-slate-50 hover:border-brand-400 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-brand-500'
                 }`}
               >
                 {file ? (
-                  <p className="text-sm font-medium text-slate-700">{file.name}</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{file.name}</p>
                 ) : (
                   <>
                     <FiUpload className="mx-auto mb-2 text-slate-400" size={22} />
-                    <p className="text-sm text-slate-500">Drop your .xlsx / .xls / .csv file here, or click to browse</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Drop your .xlsx / .xls / .csv file here, or click to browse</p>
                   </>
                 )}
               </div>
 
-              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-500 space-y-1">
-                <p className="flex items-center gap-1.5 font-semibold text-slate-600"><FiAlertTriangle size={12} /> Requirements</p>
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-500 space-y-1 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
+                <p className="flex items-center gap-1.5 font-semibold text-slate-600 dark:text-slate-300"><FiAlertTriangle size={12} /> Requirements</p>
                 <p>• First row must be column headers (use the template for the exact names).</p>
                 <p>• At minimum each row needs <b>Radionuclide</b> and <b>Current Activity</b> (unit defaults to GBq).</p>
                 <p>• Unknown owners / radionuclides are reported, skipped rows are listed after import.</p>

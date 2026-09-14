@@ -21,7 +21,7 @@ export default function Pager({ total, page, size, onPage, onSize }) {
       className={`!px-2.5 !py-1.5 text-xs rounded-lg transition-colors ${
         p === safe
           ? 'bg-brand-600 text-white font-semibold'
-          : 'btn-secondary !border-slate-300 text-slate-600 hover:bg-slate-100'
+          : 'btn-secondary !border-slate-300 text-slate-600 hover:bg-slate-100 dark:!border-slate-600 dark:text-slate-300 dark:hover:!bg-slate-700'
       }`}
     >
       {p}
@@ -40,8 +40,8 @@ export default function Pager({ total, page, size, onPage, onSize }) {
   );
 
   return (
-    <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2">
-      <p className="text-xs text-slate-500">
+    <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-2">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Showing {from}–{to} of {total} source(s)
       </p>
       <div className="flex items-center gap-2 flex-wrap">

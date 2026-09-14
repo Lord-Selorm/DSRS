@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
-import { FiUsers, FiEdit3, FiList, FiBarChart2, FiLogOut, FiSettings, FiRadio, FiHome, FiKey } from 'react-icons/fi';
+import { FiUsers, FiEdit3, FiList, FiBarChart2, FiLogOut, FiSettings, FiRadio, FiHome, FiKey, FiSun, FiMoon } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import Dashboard from '../pages/Dashboard';
 import EndUsers from '../pages/EndUsers';
 import DsrsEntry from '../pages/DsrsEntry';
@@ -21,6 +22,7 @@ const TABS = [
 
 export default function Shell() {
   const { user, logout } = useAuth();
+  const { dark, toggle } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -72,30 +74,30 @@ export default function Shell() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-paper overflow-hidden">
+    <div className="h-screen flex flex-col bg-paper dark:bg-slate-950 overflow-hidden">
       {/* ======= Header ======= */}
-      <header className="h-14 shrink-0 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6">
+      <header className="h-14 shrink-0 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 dark:bg-slate-900 dark:border-slate-800">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shrink-0">
             <FiRadio className="text-white" size={17} />
           </div>
           <div className="leading-tight min-w-0">
             <h1 className="text-sm font-bold text-slate-900 tracking-tight">Ghana DSRS Registry</h1>
-            <p className="text-[10px] text-slate-400 leading-tight hidden sm:block">
+            <p className="text-[10px] text-slate-400 leading-tight hidden sm:block dark:text-slate-500">
               National Radioactive Source Registry
             </p>
           </div>
         </div>
 
         {/* Tabs */}
-        <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+        <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl dark:bg-slate-800">
           {TABS.map(({ to, label, icon: Icon, base }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  isActive ? 'bg-white text-brand-700 shadow-sm dark:bg-slate-700 dark:text-brand-200' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                 }`
               }
             >
@@ -118,30 +120,34 @@ export default function Shell() {
           </button>
         )}
 
-        {/* Account */}
+        <button onClick={toggle} className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors dark:text-slate-400 dark:hover:bg-slate-800" aria-label="Toggle theme">
+            {dark ? <FiSun size={16} /> : <FiMoon size={16} />}
+          </button>
+
+          {/* Account */}
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2.5 pl-1.5 py-1.5 pr-2 rounded-lg hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2.5 pl-1.5 py-1.5 pr-2 rounded-lg hover:bg-slate-50 transition-colors dark:hover:bg-slate-800"
           >
             <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold uppercase">
               {(user?.full_name || 'U').charAt(0)}
             </div>
             <div className="leading-tight text-left hidden lg:block">
-              <p className="text-xs font-semibold text-slate-800">{user?.full_name}</p>
-              <p className="text-[10px] text-slate-400 capitalize">{user?.role}</p>
+              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{user?.full_name}</p>
+              <p className="text-[10px] text-slate-400 capitalize dark:text-slate-500">{user?.role}</p>
             </div>
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-slate-200 shadow-panel py-1.5 z-50">
-              <div className="px-3.5 py-2 border-b border-slate-100">
-                <p className="text-sm font-medium text-slate-800">{user?.full_name}</p>
-                <p className="text-[11px] text-slate-400">@{user?.username} · {user?.role}</p>
+            <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-slate-200 shadow-panel py-1.5 z-50 dark:bg-slate-900 dark:border-slate-800">
+              <div className="px-3.5 py-2 border-b border-slate-100 dark:border-slate-800">
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{user?.full_name}</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">@{user?.username} · {user?.role}</p>
               </div>
               <button
                 onClick={() => { setMenuOpen(false); navigate('/change-password'); }}
-                className="w-full flex items-center gap-2 px-3.5 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                className="w-full flex items-center gap-2 px-3.5 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <FiKey size={15} /> Change password
               </button>
@@ -149,13 +155,13 @@ export default function Shell() {
                 <NavLink
                   to="/admin/users"
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3.5 py-2 text-sm hover:bg-slate-50 ${isActive ? 'text-brand-700' : 'text-slate-600'}`
+                    `flex items-center gap-2 px-3.5 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-600 dark:text-slate-300'}`
                   }
                 >
                   <FiSettings size={15} /> User management
                 </NavLink>
               )}
-              <button onClick={onLogout} className="w-full flex items-center gap-2 px-3.5 py-2 text-sm text-slate-600 hover:bg-slate-50">
+              <button onClick={onLogout} className="w-full flex items-center gap-2 px-3.5 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
                 <FiLogOut size={15} /> Sign out
               </button>
             </div>

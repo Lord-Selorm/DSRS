@@ -21,23 +21,23 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-paper flex items-center justify-center px-4">
+    <div className="min-h-screen bg-paper flex items-center justify-center px-4 dark:bg-slate-950">
       <div className="w-full max-w-sm">
         {/* Brand mark */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shadow-lg shadow-brand-700/20 mb-3">
             <FiRadio className="text-white" size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Ghana DSRS Registry</h1>
-          <p className="text-sm text-slate-500 mt-1 text-center">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight dark:text-slate-50">Ghana DSRS Registry</h1>
+          <p className="text-sm text-slate-500 mt-1 text-center dark:text-slate-400">
             Disused Sealed Radioactive Sources<br />National Radioactive Source Registry
           </p>
         </div>
 
         {/* Card */}
         <div className="card p-6 shadow-panel">
-          <h2 className="text-lg font-semibold text-slate-900 mb-1">Sign in</h2>
-          <p className="text-sm text-slate-500 mb-5">Enter your operator credentials to continue.</p>
+          <h2 className="text-lg font-semibold text-slate-900 mb-1 dark:text-slate-50">Sign in</h2>
+          <p className="text-sm text-slate-500 mb-5 dark:text-slate-400">Enter your operator credentials to continue.</p>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>

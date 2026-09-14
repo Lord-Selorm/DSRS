@@ -7,9 +7,9 @@ import { useAuth } from '../context/AuthContext';
 const emptyForm = { username: '', password: '', full_name: '', email: '', role: 'operator' };
 
 const roleStyle = {
-  admin: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200',
-  operator: 'bg-brand-50 text-brand-800 ring-1 ring-brand-200',
-  viewer: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+  admin: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/30',
+  operator: 'bg-brand-50 text-brand-800 ring-1 ring-brand-200 dark:bg-brand-500/15 dark:text-brand-200 dark:ring-brand-500/30',
+  viewer: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
 };
 
 export default function UsersAdmin() {
@@ -76,7 +76,7 @@ export default function UsersAdmin() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">User Management</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Administrators &amp; system operators</p>
+          <p className="text-sm text-slate-500 mt-0.5 dark:text-slate-400">Administrators &amp; system operators</p>
         </div>
         <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm(emptyForm); }} className="btn-primary">
           <FiPlus size={16} /> Add User
@@ -86,8 +86,8 @@ export default function UsersAdmin() {
       {showForm && (
         <form onSubmit={onSubmit} className="card p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm text-slate-800">{editingId ? `Edit: ${form.username}` : 'New User'}</h3>
-            <button type="button" onClick={closeForm} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+            <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-100">{editingId ? `Edit: ${form.username}` : 'New User'}</h3>
+            <button type="button" onClick={closeForm} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800">
               <FiX size={16} />
             </button>
           </div>
@@ -95,7 +95,7 @@ export default function UsersAdmin() {
             <div>
               <label className="field-label">Username *</label>
               <input value={form.username} disabled={!!editingId} onChange={(e) => setForm({ ...form, username: e.target.value })}
-                className={`input ${editingId ? 'bg-slate-100' : ''}`} required />
+                className={`input ${editingId ? 'bg-slate-100 dark:bg-slate-900' : ''}`} required />
             </div>
             <div>
               <label className="field-label">{editingId ? 'New Password (blank = keep)' : 'Password *'}</label>
@@ -142,9 +142,9 @@ export default function UsersAdmin() {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id} className={u.is_active ? '' : 'opacity-50'}>
-                  <td className="font-mono font-medium text-slate-900">{u.username}</td>
-                  <td className="text-slate-700">{u.full_name}</td>
-                  <td className="text-slate-600">{u.email || '—'}</td>
+                  <td className="font-mono font-medium text-slate-900 dark:text-slate-50">{u.username}</td>
+                  <td className="text-slate-700 dark:text-slate-300">{u.full_name}</td>
+                  <td className="text-slate-600 dark:text-slate-300">{u.email || '—'}</td>
                   <td>
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleStyle[u.role] || ''}`}>
                       {u.role}
@@ -157,10 +157,10 @@ export default function UsersAdmin() {
                   </td>
                   <td>
                     <div className="flex justify-end gap-2 text-sm">
-                      <button onClick={() => startEdit(u)} className="px-2 py-1 rounded-lg text-brand-600 hover:bg-brand-50 font-medium">
+                      <button onClick={() => startEdit(u)} className="px-2 py-1 rounded-lg text-brand-600 hover:bg-brand-50 font-medium dark:text-brand-300 dark:hover:bg-brand-500/20">
                         Edit
                       </button>
-                      <button onClick={() => toggleActive(u)} className="px-2 py-1 rounded-lg text-slate-500 hover:bg-slate-100">
+                      <button onClick={() => toggleActive(u)} className="px-2 py-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
                         {u.is_active ? 'Deactivate' : 'Activate'}
                       </button>
                     </div>
@@ -172,7 +172,7 @@ export default function UsersAdmin() {
         </div>
         {users.length === 0 && (
           <div className="empty-state">
-            <FiInbox size={40} className="mb-3 text-slate-300" />
+            <FiInbox size={40} className="mb-3 text-slate-300 dark:text-slate-600" />
             <p className="font-medium text-slate-500">No users</p>
           </div>
         )}

@@ -141,7 +141,7 @@ export default function EndUsers() {
     <div className="p-6 h-full">
       <div className="mb-5">
         <h1 className="page-title">End Users</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Licensed facilities that own or operate radioactive sources</p>
+        <p className="text-sm text-slate-500 mt-0.5 dark:text-slate-400">Licensed facilities that own or operate radioactive sources</p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-5 items-start">
@@ -150,10 +150,10 @@ export default function EndUsers() {
           <header className="card-header">
             <div className="flex items-center gap-2">
               <FiUsers size={16} className="text-brand-600" />
-              <h2 className="font-semibold text-sm text-slate-800">{editingId ? 'Edit End User' : 'Add End User'}</h2>
+              <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">{editingId ? 'Edit End User' : 'Add End User'}</h2>
             </div>
             {editingId && (
-              <button onClick={cancelEdit} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+              <button onClick={cancelEdit} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
                 <FiX size={13} /> cancel
               </button>
             )}
@@ -195,8 +195,8 @@ export default function EndUsers() {
         <section className="card overflow-hidden">
           <div className="card-header">
             <div>
-              <h2 className="font-semibold text-sm text-slate-800">Registered end users</h2>
-              <p className="text-xs text-slate-400 mt-0.5">{filtered.length} of {users.length} facilities</p>
+              <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Registered end users</h2>
+              <p className="text-xs text-slate-400 mt-0.5 dark:text-slate-500">{filtered.length} of {users.length} facilities</p>
             </div>
             {selected.length > 0 && (
               <>
@@ -213,7 +213,7 @@ export default function EndUsers() {
             </button>
           </div>
 
-          <div className="p-4 border-b border-slate-200">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
             <div className="relative">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
@@ -247,7 +247,7 @@ export default function EndUsers() {
               </thead>
               <tbody>
                 {filtered.map((u) => (
-                  <tr key={u.id} className={selected.includes(u.id) ? 'bg-brand-50/60 border-l-4 border-l-brand-500' : ''}>
+                  <tr key={u.id} className={selected.includes(u.id) ? 'bg-brand-50/60 border-l-4 border-l-brand-500 dark:bg-brand-500/10' : ''}>
                     <td>
                       <input
                         type="checkbox"
@@ -257,18 +257,18 @@ export default function EndUsers() {
                       />
                     </td>
                     <td className="min-w-[180px]">
-                      <p className="font-semibold text-slate-800">{u.name}</p>
-                      <p className="text-xs text-slate-400">{u.address || '—'}</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100">{u.name}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">{u.address || '—'}</p>
                     </td>
-                    <td className="whitespace-nowrap text-slate-600">{u.contact_phone || '—'}</td>
-                    <td className="text-slate-600">{u.license_number || '—'}</td>
-                    <td className="text-slate-600">{u.rpo_rpe_name || '—'}</td>
+                    <td className="whitespace-nowrap text-slate-600 dark:text-slate-300">{u.contact_phone || '—'}</td>
+                    <td className="text-slate-600 dark:text-slate-300">{u.license_number || '—'}</td>
+                    <td className="text-slate-600 dark:text-slate-300">{u.rpo_rpe_name || '—'}</td>
                     <td>
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => startEdit(u)} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50" title="Edit">
+                        <button onClick={() => startEdit(u)} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Edit">
                           <FiEdit size={15} />
                         </button>
-                        <button onClick={() => remove(u.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50" title="Delete">
+                        <button onClick={() => remove(u.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-500 dark:hover:text-rose-300 dark:hover:bg-rose-500/20" title="Delete">
                           <FiTrash2 size={15} />
                         </button>
                       </div>
@@ -279,7 +279,7 @@ export default function EndUsers() {
             </table>
             {filtered.length === 0 && !loading && (
               <div className="empty-state">
-                <FiInbox size={38} className="mb-3 text-slate-300" />
+                <FiInbox size={38} className="mb-3 text-slate-300 dark:text-slate-600" />
                 <p className="font-medium text-slate-500">No end users found</p>
               </div>
             )}
