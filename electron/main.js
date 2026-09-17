@@ -7,6 +7,7 @@ let expressServer;
 function applyDefaults() {
   if (!app.isPackaged) return;
   if (!process.env.PORT) process.env.PORT = '3499';
+  if (!process.env.DSRS_UPLOAD_DIR) process.env.DSRS_UPLOAD_DIR = path.join(app.getPath('userData'), 'uploads');
   if (!process.env.DB_HOST) process.env.DB_HOST = 'gateway01.eu-central-1.prod.aws.tidbcloud.com';
   if (!process.env.DB_PORT) process.env.DB_PORT = '4000';
   if (!process.env.DB_USER) process.env.DB_USER = '2X39CuYJZ6vv942.root';

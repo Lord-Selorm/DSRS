@@ -11,7 +11,7 @@
     "build:client": "cd client && npm run build",
     "start": "node server/index.js",
     "start:electron": "electron .",
-    "rebuild:electron": "cd server && npx electron-rebuild -f -w better-sqlite3",
+    "rebuild:electron": "npx electron-rebuild -f -w better-sqlite3",
     "rebuild:node": "cd server && npm rebuild better-sqlite3",
     "db:init": "cd server && npm run db:init",
     "db:seed": "cd server && npm run db:seed",
@@ -22,6 +22,19 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.11.1",
+    "bwip-js": "^4.11.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.1",
+    "mysql2": "^3.6.5",
+    "qrcode": "^1.5.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.2.0",
@@ -39,7 +52,7 @@
       "electron/**/*",
       "server/**/*",
       "client/dist/**/*",
-      "!server/node_modules/nodemon/**",
+      "!server/node_modules/**",
       "!server/test/**",
       "!server/package-lock.json"
     ],
@@ -48,6 +61,7 @@
     ],
     "npmRebuild": false,
     "win": {
+      "icon": "build/icon.png",
       "target": [
         { "target": "nsis", "arch": ["x64"] },
         { "target": "portable", "arch": ["x64"] }

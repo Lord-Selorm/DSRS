@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-const uploadDir = path.join(__dirname, '..', 'uploads');
+const uploadDir = process.env.DSRS_UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
