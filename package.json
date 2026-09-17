@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Disused Sealed Radioactive Sources - Radioactive Source Inventory & Tracking",
   "main": "electron/main.js",
+  "author": "NRA Ghana DSRS Team",
   "scripts": {
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
@@ -15,16 +16,49 @@
     "db:init": "cd server && npm run db:init",
     "db:seed": "cd server && npm run db:seed",
     "db:provision": "cd server && npm run db:provision",
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "dist": "npm run build:client && electron-builder --win",
+    "dist:portable": "npm run build:client && electron-builder --win portable"
   },
   "engines": {
     "node": ">=18"
   },
-  "dependencies": {
-    "concurrently": "^8.2.2",
-    "electron": "^28.1.0"
-  },
   "devDependencies": {
-    "@electron/rebuild": "^4.2.0"
+    "@electron/rebuild": "^4.2.0",
+    "concurrently": "^8.2.2",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.nra.gh.dsrs",
+    "productName": "DSRS Registry",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "client/dist/**/*",
+      "!server/node_modules/nodemon/**",
+      "!server/test/**",
+      "!server/package-lock.json"
+    ],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

@@ -4,6 +4,18 @@ const path = require('path');
 let mainWindow;
 let expressServer;
 
+function applyDefaults() {
+  if (!app.isPackaged) return;
+  if (!process.env.PORT) process.env.PORT = '3499';
+  if (!process.env.DB_HOST) process.env.DB_HOST = 'gateway01.eu-central-1.prod.aws.tidbcloud.com';
+  if (!process.env.DB_PORT) process.env.DB_PORT = '4000';
+  if (!process.env.DB_USER) process.env.DB_USER = '2X39CuYJZ6vv942.root';
+  if (!process.env.DB_PASSWORD) process.env.DB_PASSWORD = 'vShVGRYkh7awrBW2';
+  if (!process.env.DB_NAME) process.env.DB_NAME = 'dsrs_db';
+  if (!process.env.DB_SSL) process.env.DB_SSL = 'true';
+  if (!process.env.DB_SSL_REJECT_UNAUTHORIZED) process.env.DB_SSL_REJECT_UNAUTHORIZED = 'false';
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -41,7 +53,7 @@ function startApi() {
   if (isDev) process.env.PORT = process.env.PORT || '5000';
 
   const serverApp = require('../server/index');
-  const port = isDev ? Number(process.env.PORT) : 0;
+  const port = isDev || app.isPackaged ? Number(process.env.PORT) : 0;
 
   expressServer = serverApp.listen(port, '127.0.0.1', () => {
     if (!mainWindow) createWindow();
@@ -63,6 +75,7 @@ function startApi() {
 }
 
 app.whenReady().then(() => {
+  applyDefaults();
   startApi();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

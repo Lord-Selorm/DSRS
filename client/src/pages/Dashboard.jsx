@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
-  FiRadio, FiUsers, FiAlertTriangle, FiTool, FiActivity,
+  FiRadio, FiUsers, FiAlertTriangle, FiTool, FiActivity, FiShield,
   FiArrowRight, FiPlus, FiList, FiFileText, FiBarChart2,
 } from 'react-icons/fi';
 
@@ -23,12 +23,6 @@ function timeAgo(iso) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
   return new Date(iso).toLocaleDateString();
-}
-
-function daysUntil(dateStr) {
-  if (!dateStr) return null;
-  const ms = new Date(dateStr + 'T00:00:00') - new Date();
-  return Math.ceil(ms / 86400000);
 }
 
 function StatCard({ icon: Icon, label, value, tone, onClick }) {
@@ -65,8 +59,10 @@ export default function Dashboard() {
   const total = data?.total ?? 0;
   const highRisk = data?.highRisk || [];
   const due = data?.calibrationDue || [];
+  const alerts = data?.alerts || [];
   const recent = data?.recentActivity || [];
   const maxCat = Math.max(1, ...Object.values(catTotal).map(Number));
+  const highCount = alerts.filter((a) => a.severity === 'high').length;
 
   const bandFor = (cls) => CAT_META[cls] || { name: `Category ${cls}`, badge: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300', bar: 'bg-slate-400' };
 
@@ -162,40 +158,55 @@ export default function Dashboard() {
 
         {/* Right column */}
         <div className="space-y-6">
-          {/* Calibration due */}
+          {/* Compliance alerts */}
           <section className="card">
             <header className="card-header">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                <FiTool className="text-amber-500" size={15} /> Instrument calibration due
+                <FiAlertTriangle className="text-rose-500" size={15} /> Compliance alerts
               </h2>
-              <span className="micro-label">next 90 days</span>
+              <span className="micro-label">{highCount ? `${highCount} high priority` : `${alerts.length} total`}</span>
             </header>
-            {due.length === 0 ? (
-              <p className="p-5 text-sm text-slate-500 dark:text-slate-400">Nothing due in the next 90 days.</p>
+            {alerts.length === 0 ? (
+              <p className="p-5 text-sm text-slate-500 dark:text-slate-400">
+                All clear — no leak tests, verifications or calibrations due.
+              </p>
             ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                {due.map((s) => {
-                  const days = daysUntil(s.leak_test_instrument_calibration_due_date);
-                  const cls = days <= 30 ? 'bg-red-100 text-red-700' : days <= 60 ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700';
-                  const lbl = days < 0 ? 'overdue' : days === 0 ? 'due today' : days === 1 ? '1 day left' : `${days} days left`;
-                  return (
-                    <li key={s.id}>
-                      <button
-                        onClick={() => navigate(`/sources/${s.id}`)}
-                        className="w-full px-5 py-3 flex items-center justify-between gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-50 truncate">{s.source_serial_no}</p>
-                          <p className="text-xs text-slate-500 truncate dark:text-slate-400">
-                            {s.radionuclide} · {new Date(s.leak_test_instrument_calibration_due_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <span className={`badge ${cls} shrink-0`}>{lbl}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {[{ type: 'leak_test', label: 'Leak tests', icon: FiTool, dot: 'bg-red-400' },
+                  { type: 'verification', label: 'Periodic verification', icon: FiShield, dot: 'bg-amber-400' },
+                  { type: 'calibration', label: 'Instrument calibration', icon: FiTool, dot: 'bg-sky-400' },
+                ].filter((g) => alerts.some((a) => a.type === g.type)).map((g, gi) => (
+                  <div key={g.type} className={gi === 0 ? '' : 'border-t border-slate-100 dark:border-slate-800'}>
+                    <p className="px-5 pt-3 pb-1 text-[11px] uppercase tracking-wide text-slate-400 flex items-center gap-1.5 dark:text-slate-500">
+                      <span className={`w-1.5 h-1.5 rounded-full ${g.dot}`} /> {g.label}
+                    </p>
+                    <ul>
+                      {alerts.filter((a) => a.type === g.type).map((a) => {
+                        const sevCls =
+                          a.severity === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' :
+                          a.severity === 'medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' :
+                          'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300';
+                        return (
+                          <li key={`${a.sourceId}-${a.type}`}>
+                            <button
+                              onClick={() => navigate(`/sources/${a.sourceId}`)}
+                              className="w-full px-5 py-2.5 flex items-center justify-between gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50 truncate">{a.label}</p>
+                                <p className="text-xs text-slate-500 truncate dark:text-slate-400">
+                                  {[a.radionuclide, a.owner, a.date ? new Date(a.date).toLocaleDateString() : (a.title.startsWith('No ') ? 'nothing on record' : null)].filter(Boolean).join(' · ')}
+                                </p>
+                              </div>
+                              <span className={`badge ${sevCls} shrink-0`}>{a.title}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             )}
           </section>
 
