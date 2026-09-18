@@ -10,8 +10,9 @@ const bwipjs = require('bwip-js');
 const upload = require('../middleware/multer');
 const uploadDir = require('../middleware/multer').uploadDir;
 const pool = require('../config/db');
-const { importSources } = require('../utils/sourceImport');
+const { importSources, buildImportTemplate } = require('../utils/sourceImport');
 const { uuid } = require('../utils/uuid');
+const { roleRequired } = require('../middleware/auth');
 
 const importUpload = multer({
   storage: multer.memoryStorage(),
@@ -75,6 +76,17 @@ router.post('/import', importUpload.single('file'), async (req, res) => {
   }
 });
 
+router.get('/import-template', async (req, res) => {
+  try {
+    const buffer = buildImportTemplate();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="dsrs_import_template.xlsx"');
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const source = await Source.findById(req.params.id);
@@ -93,10 +105,24 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', roleRequired('admin'), async (req, res) => {
   try {
     const result = await Source.update(req.params.id, req.body, req.user.id);
     res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/:id', roleRequired('admin'), async (req, res) => {
+  try {
+    const source = await Source.findById(req.params.id);
+    if (!source) return res.status(404).json({ error: 'Source not found' });
+    const [photos] = await pool.query('SELECT photo_path FROM source_photos WHERE source_id = ?', [req.params.id]);
+    if (source.photo_path) fs.unlink(path.join(uploadDir, source.photo_path), () => {});
+    (photos || []).forEach((p) => { if (p.photo_path) fs.unlink(path.join(uploadDir, p.photo_path), () => {}); });
+    await pool.query('DELETE FROM sources WHERE id = ?', [req.params.id]);
+    res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -128,7 +154,7 @@ router.get('/:id/history', async (req, res) => {
   }
 });
 
-router.post('/:id/photo', upload.single('photo'), async (req, res) => {
+router.post('/:id/photo', roleRequired('admin'), upload.single('photo'), async (req, res) => {
   try {
     const source = await Source.findById(req.params.id);
     if (!source) {
@@ -147,7 +173,7 @@ router.post('/:id/photo', upload.single('photo'), async (req, res) => {
   }
 });
 
-router.post('/:id/photos', upload.array('photos', 10), async (req, res) => {
+router.post('/:id/photos', roleRequired('admin'), upload.array('photos', 10), async (req, res) => {
   try {
     const source = await Source.findById(req.params.id);
     if (!source) {
@@ -173,7 +199,7 @@ router.post('/:id/photos', upload.array('photos', 10), async (req, res) => {
   }
 });
 
-router.delete('/:id/photos/:photoId', async (req, res) => {
+router.delete('/:id/photos/:photoId', roleRequired('admin'), async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM source_photos WHERE id = ? AND source_id = ?',

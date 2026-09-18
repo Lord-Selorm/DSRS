@@ -25,6 +25,7 @@ app.use('/api/sources', authRequired, require('./routes/sources'));
 app.use('/api/institutions', authRequired, require('./routes/institutions'));
 app.use('/api/users', authRequired, require('./routes/users'));
 app.use('/api/dashboard', authRequired, require('./routes/dashboard'));
+app.use('/api/chat', authRequired, require('./routes/chat'));
 
 const syncController = createSyncController({ local: db });
 app.use('/api/sync', authRequired, (req, res, next) => {

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { FiFilter, FiDownload, FiPrinter, FiSearch, FiEye, FiEdit, FiInbox, FiRefreshCw, FiAlertTriangle, FiPlus, FiList, FiFileText, FiUpload } from 'react-icons/fi';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import SourceEntryForm from '../components/SourceEntryForm';
 import ImportModal from '../components/ImportModal';
 import { toTbq, categoryLabel } from '../utils/unitConversion';
@@ -15,6 +16,8 @@ const ALL = 100000;
 export default function DsrsEntry() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const editId = params.get('edit');
   const [tab, setTab] = useState('entry');
 
@@ -33,6 +36,11 @@ export default function DsrsEntry() {
   const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => { if (editId) setTab('entry'); }, [editId]);
+
+  // Only managers may edit existing records.
+  useEffect(() => {
+    if (editId && !isAdmin) setParams({}, { replace: true });
+  }, [editId, isAdmin, setParams]);
 
   const load = (f, signal) => {
     setLoading(true);
@@ -90,6 +98,25 @@ export default function DsrsEntry() {
     printInventoryReport({ sources: all, institutions });
   };
 
+  const downloadTemplate = async () => {
+    try {
+      const resp = await api.get('/sources/import-template', { responseType: 'blob' });
+      const url = URL.createObjectURL(resp.data);
+      const a = document.createElement('a');
+      a.href = url;
+      const cd = resp.headers?.['content-disposition'] || '';
+      const m = /filename="?([^";]+)"?/.exec(cd);
+      a.download = m?.[1] || 'dsrs_import_template.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Import template downloaded');
+    } catch {
+      toast.error('Could not download template');
+    }
+  };
+
   const rowColor = (cat) => `row-cat-${[1, 2, 3, 4, 5].includes(cat) ? cat : 0}`;
   const catDot = { 1: 'bg-red-500', 2: 'bg-orange-500', 3: 'bg-amber-500', 4: 'bg-sky-400', 5: 'bg-emerald-500' };
 
@@ -110,16 +137,21 @@ export default function DsrsEntry() {
             <FiRefreshCw size={15} /> Back to new entry
           </button>
         ) : (
-          <button onClick={() => setImportOpen(true)} className="btn-secondary">
-            <FiUpload size={15} /> Bulk import
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={downloadTemplate} className="btn-secondary" title="Download an xlsx template with the correct column headers">
+              <FiFileText size={15} /> Template
+            </button>
+            <button onClick={() => setImportOpen(true)} className="btn-secondary">
+              <FiUpload size={15} /> Bulk import
+            </button>
+          </div>
         )}
       </div>
 
       {/* Tabs: keep registering and inventory separate */}
       <div className="flex items-center gap-2 flex-wrap">
         <button onClick={() => setTab('entry')} className={tabBtn(tab === 'entry')}>
-          <FiPlus size={15} /> Register / Edit Source
+          <FiPlus size={15} /> {isAdmin ? 'Register / Edit Source' : 'Register Source'}
         </button>
         <button onClick={() => setTab('inventory')} className={tabBtn(tab === 'inventory')}>
           <FiList size={15} /> Inventory {total > 0 && <span className="opacity-70">({total})</span>}
@@ -192,9 +224,11 @@ export default function DsrsEntry() {
                           <Link to={`/sources/${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Traceability">
                             <FiEye size={15} />
                           </Link>
-                          <Link to={`/entry?edit=${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Edit">
-                            <FiEdit size={15} />
-                          </Link>
+                          {isAdmin && (
+                            <Link to={`/entry?edit=${s.id}`} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Edit">
+                              <FiEdit size={15} />
+                            </Link>
+                          )}
                         </div>
                       </td>
                     </tr>

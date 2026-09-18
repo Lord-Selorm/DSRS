@@ -8,7 +8,7 @@ const SEED = path.join(__dirname, '..', 'database', 'seed.sqlite.sql');
 // Tables whose writes produce sync events (uploaded to the cloud when online).
 const SYNC_TABLES = [
   'sources', 'institutions', 'source_photos', 'source_history',
-  'source_measurements', 'source_leak_tests',
+  'source_measurements', 'source_leak_tests', 'messages',
 ];
 
 function tableOf(sql) {
@@ -77,6 +77,30 @@ function init(dbFile) {
   const hasCol = (t, c) => raw.prepare(`PRAGMA table_info(${t})`).all().some((col) => col.name === c);
   if (!hasCol('sync_events', 'row_uuid')) {
     raw.exec('ALTER TABLE sync_events ADD COLUMN row_uuid TEXT');
+  }
+
+  // Add the chat tables to databases created before the chat feature shipped.
+  const hasTable = (t) => raw.prepare("SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name=?").get(t).c > 0;
+  if (!hasTable('messages')) {
+    raw.exec(`CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sync_uuid TEXT,
+      channel TEXT NOT NULL DEFAULT 'general',
+      sender TEXT NOT NULL,
+      sender_name TEXT,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+  }
+  if (!hasTable('chat_reads')) {
+    raw.exec(`CREATE TABLE IF NOT EXISTS chat_reads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      last_read_id INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (username, channel)
+    )`);
   }
 
   let suppressSyncLog = false;

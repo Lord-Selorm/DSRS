@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FiChevronLeft, FiEdit, FiDownload, FiCamera, FiShield, FiActivity, FiClock, FiPrinter } from 'react-icons/fi';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { categoryBadge, categoryLabel, formatDate } from '../utils/unitConversion';
+import { printSourceLabel } from '../utils/printSourceLabel';
 
 export default function Traceability() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [source, setSource] = useState(null);
   const [qr, setQr] = useState(null);
   const [barcode, setBarcode] = useState(null);
@@ -36,6 +40,10 @@ export default function Traceability() {
     a.href = barcode;
     a.download = `source_${source?.source_serial_no || id}_barcode.png`;
     a.click();
+  };
+
+  const printLabel = () => {
+    printSourceLabel({ source, barcodeUrl: barcode, qrUrl: qr });
   };
 
   const statusRows = useMemo(() => {
@@ -83,8 +91,9 @@ export default function Traceability() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={printLabel} className="btn-secondary"><FiPrinter size={15} /> Print label</button>
           <button onClick={() => window.print()} className="btn-secondary"><FiPrinter size={15} /> Print</button>
-          <Link to={`/entry?edit=${source.id}`} className="btn-primary"><FiEdit size={15} /> Edit record</Link>
+          {isAdmin && <Link to={`/entry?edit=${source.id}`} className="btn-primary"><FiEdit size={15} /> Edit record</Link>}
         </div>
       </div>
 

@@ -2,7 +2,7 @@ const { uuid } = require('../utils/uuid');
 
 const SYNC_TABLES = [
   'institutions', 'sources', 'source_photos', 'source_history',
-  'source_measurements', 'source_leak_tests',
+  'source_measurements', 'source_leak_tests', 'messages',
 ];
 
 const PARENT_LOOKUP = {
@@ -114,7 +114,7 @@ class SyncService {
 
   async push() {
     const m = await this.maps();
-    const stats = { institutions: 0, sources: 0, source_photos: 0, source_history: 0, source_measurements: 0, source_leak_tests: 0 };
+    const stats = { institutions: 0, sources: 0, source_photos: 0, source_history: 0, source_measurements: 0, source_leak_tests: 0, messages: 0 };
     for (const table of SYNC_TABLES) {
       stats[table] = await this.pushTable(table, m);
     }
@@ -159,6 +159,10 @@ class SyncService {
       await this.pushSource(localRow, m);
       return;
     }
+    if (table === 'messages') {
+      await this.pushMessage(localRow);
+      return;
+    }
     await this.pushChild(table, localRow, m);
   }
 
@@ -196,6 +200,28 @@ class SyncService {
     if (existing[0]) {
       const cloudPayload = await this.keepColumns(this.cloud, 'institutions', payload);
       await this.cloud.query('UPDATE institutions SET ? WHERE id = ?', [cloudPayload, cloudId]);
+    }
+  }
+
+  // Messages are standalone rows (no parent): key on sync_uuid, then insert/update.
+  async pushMessage(localRow) {
+    const u = localRow.sync_uuid;
+    let cloudId = u ? await this.cloudRegistry('messages', u) : null;
+    if (cloudId == null && u) {
+      const [byUuid] = await this.cloud.query('SELECT id FROM messages WHERE sync_uuid = ? LIMIT 1', [u]);
+      if (byUuid[0]) {
+        cloudId = byUuid[0].id;
+        await this.registerCloud('messages', u, cloudId);
+      }
+    }
+    const payload = clean({ ...localRow });
+    delete payload.id;
+    const cloudPayload = await this.keepColumns(this.cloud, 'messages', payload);
+    if (cloudId) {
+      await this.cloud.query('UPDATE messages SET ? WHERE id = ?', [cloudPayload, cloudId]);
+    } else {
+      const [res] = await this.cloud.query('INSERT INTO messages SET ?', [cloudPayload]);
+      if (u) await this.registerCloud('messages', u, res.insertId);
     }
   }
 
@@ -280,7 +306,7 @@ payload.original_owner_id = await owner(localRow.original_owner_id);
 
   async pull() {
     const m = await this.maps();
-    const stats = { institutions: 0, sources: 0, source_photos: 0, source_history: 0, source_measurements: 0, source_leak_tests: 0 };
+    const stats = { institutions: 0, sources: 0, source_photos: 0, source_history: 0, source_measurements: 0, source_leak_tests: 0, messages: 0 };
     for (const table of SYNC_TABLES) {
       stats[table] = await this.pullTable(table, m);
     }

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { FiPlus, FiX, FiShield, FiInbox } from 'react-icons/fi';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { roleLabel } from '../utils/roleLabel';
 
 const emptyForm = { username: '', password: '', full_name: '', email: '', role: 'operator' };
 
@@ -71,6 +72,9 @@ export default function UsersAdmin() {
 
   const closeForm = () => { setShowForm(false); setEditingId(null); setForm(emptyForm); };
 
+  const fmt = (v) =>
+    v ? new Date(String(v).replace('T', ' ').replace(' ', 'T')).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+
   return (
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -113,9 +117,9 @@ export default function UsersAdmin() {
             <div>
               <label className="field-label">Role</label>
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="input">
-                <option value="operator">Operator</option>
+                <option value="operator">User</option>
                 <option value="viewer">Viewer</option>
-                <option value="admin">Admin</option>
+                <option value="admin">Manager</option>
               </select>
             </div>
           </div>
@@ -133,9 +137,11 @@ export default function UsersAdmin() {
               <tr>
                 <th>Username</th>
                 <th>Full Name</th>
-                <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
+                <th>Changes</th>
+                <th>Last active</th>
+                <th>Chat</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
@@ -144,16 +150,22 @@ export default function UsersAdmin() {
                 <tr key={u.id} className={u.is_active ? '' : 'opacity-50'}>
                   <td className="font-mono font-medium text-slate-900 dark:text-slate-50">{u.username}</td>
                   <td className="text-slate-700 dark:text-slate-300">{u.full_name}</td>
-                  <td className="text-slate-600 dark:text-slate-300">{u.email || '—'}</td>
                   <td>
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleStyle[u.role] || ''}`}>
-                      {u.role}
+                      {roleLabel(u.role)}
                     </span>
                   </td>
                   <td>
                     <span className={`badge ${u.is_active ? 'badge-green' : 'badge-rose'}`}>
                       {u.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td className="text-slate-700 dark:text-slate-300">{Number(u.activity?.changes || 0)}</td>
+                  <td className="whitespace-nowrap text-slate-500 dark:text-slate-400" title={u.activity?.last_active ? `Last registry change ${fmt(u.activity.last_active)}` : undefined}>
+                    {fmt(u.activity?.last_active)}
+                  </td>
+                  <td className="text-slate-600 dark:text-slate-300" title={u.activity?.last_sent ? `Last message ${fmt(u.activity.last_sent)}` : undefined}>
+                    {Number(u.activity?.messages || 0)}
                   </td>
                   <td>
                     <div className="flex justify-end gap-2 text-sm">

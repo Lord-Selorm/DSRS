@@ -130,3 +130,26 @@ test('concurrent cloud change is pulled down when cloud is newer', async () => {
   const [localRows] = await local.query("SELECT current_activity FROM sources WHERE source_serial_no = 'CLOUD-2'");
   assert.strictEqual(Number(localRows[0].current_activity), 43);
 });
+
+test('chat messages push to and pull from the cloud', async () => {
+  await local.query("INSERT INTO messages (sync_uuid, channel, sender, sender_name, text) VALUES (?, ?, ?, ?, ?)",
+    ['uu-msg-1-000000000000', 'general', 'demo', 'Demo User', 'hello offline']);
+  const res = await svc.push();
+  assert.ok(res.messages >= 1, 'local message pushed');
+
+  const [cloudRows] = await cloud.query("SELECT * FROM messages WHERE sync_uuid = 'uu-msg-1-000000000000'");
+  assert.strictEqual(cloudRows.length, 1);
+  assert.strictEqual(cloudRows[0].sender, 'demo');
+  assert.strictEqual(cloudRows[0].channel, 'general');
+
+  await cloud.query("INSERT INTO messages (sync_uuid, channel, sender, sender_name, text) VALUES (?, ?, ?, ?, ?)",
+    ['uu-msg-2-000000000000', 'management', 'admin', 'The Manager', 'hello from cloud']);
+  const pull = await svc.pull();
+  assert.ok(pull.messages.inserted >= 1, 'cloud message pulled');
+
+  const [localRows] = await local.query("SELECT * FROM messages WHERE sync_uuid = 'uu-msg-2-000000000000'");
+  assert.strictEqual(localRows.length, 1);
+  assert.strictEqual(localRows[0].channel, 'management');
+
+  assert.strictEqual(local.pendingEvents().length, 0, 'no leftover events after push');
+});

@@ -71,6 +71,128 @@ const DATE_FIELDS = [
   'leak_test_date', 'leak_test_instrument_calibration_due_date', 'conditioning_date',
 ];
 
+// Friendly column labels (used to generate the xlsx import template). These are
+// the exact strings the matcher accepts, matching the labels in the client.
+const FRIENDLY_LABELS = {
+  device_serial_no: 'Device Serial No.',
+  source_serial_no: 'Source Serial No.',
+  nra_registration_no: 'NRA Registration No.',
+  source_barcode: 'Source Barcode',
+  no_on_source: 'No. on Source',
+  radionuclide: 'Radionuclide',
+  half_life_value: 'Half-life Value',
+  half_life_unit: 'Half-life Unit',
+  original_activity: 'Original Activity',
+  original_activity_unit: 'Original Activity Unit',
+  original_activity_date: 'Original Activity Date',
+  current_activity: 'Current Activity',
+  current_activity_unit: 'Current Activity Unit',
+  current_activity_date: 'Current Activity Date',
+  source_physical_form: 'Physical Form',
+  source_length: 'Length (cm)',
+  source_diameter: 'Diameter (cm)',
+  source_mass: 'Mass (g)',
+  manufacturer: 'Manufacturer',
+  manufacturer_country: 'Country of Manufacture',
+  source_certificate_no: 'Source Certificate No.',
+  original_owner_name: 'Original Owner',
+  date_licensed: 'Date Licensed',
+  original_application: 'Original Application',
+  current_owner_name: 'Current Owner',
+  date_transferred: 'Date Transferred',
+  current_application: 'Current Application',
+  reason_for_transfer: 'Reason for Transfer',
+  transfer_authorization: 'Transfer Authorization',
+  transporter: 'Transporter',
+  storage_facility_unit: 'Storage Facility Unit',
+  storage_cage_address: 'Storage Cage Address',
+  date_placed_in_cage: 'Date Placed in Cage',
+  responsible_officer: 'Responsible Officer',
+  date_last_verified: 'Date Last Verified',
+  radiation_type: 'Radiation Type',
+  dose_rate_at_1m: 'Dose Rate at 1m (mSv/h)',
+  dose_rate_on_surface: 'Dose Rate on Surface (mSv/h)',
+  background_radiation: 'Background (mSv/h)',
+  measurement_date: 'Measurement Date',
+  instrument_used: 'Instrument Used',
+  instrument_calibration_due_date: 'Instrument Calibration Due',
+  source_integrity: 'Source Integrity',
+  contamination_status: 'Contamination Status',
+  visual_inspection_result: 'Visual Inspection Result',
+  leak_test_method: 'Leak Test Method',
+  leak_test_result: 'Leak Test Result',
+  leak_test_date: 'Leak Test Date',
+  leak_test_instrument_used: 'Leak Test Instrument Used',
+  leak_test_instrument_calibration_due_date: 'Leak Test Instrument Calibration Due',
+  conditioning_status: 'Conditioning Status',
+  conditioning_date: 'Conditioning Date',
+  capsule_no_id: 'Capsule No./ID',
+  capsule_height_mm: 'Capsule Height (mm)',
+  capsule_external_diameter: 'Capsule Ext. Diameter (mm)',
+  concrete_drum_no: 'Concrete Drum / Waste Pkg No.',
+  borehole_disposal_intention: 'Borehole Disposal Intention',
+  return_to_supplier: 'Return to Supplier',
+  reuse: 'Reuse',
+  decay_storage: 'Decay Storage',
+};
+
+const EXAMPLE_TEMPLATE_ROW = {
+  device_serial_no: 'GH-BX-0001',
+  source_serial_no: 'SRC-AM-001',
+  nra_registration_no: 'NRA/2024/001',
+  source_barcode: 'AM241-0001',
+  no_on_source: '1',
+  radionuclide: 'Am-241',
+  half_life_value: '432.2',
+  half_life_unit: 'yr',
+  original_activity: '111',
+  original_activity_unit: 'GBq',
+  original_activity_date: '2018-06-15',
+  current_activity: '80',
+  current_activity_unit: 'GBq',
+  current_activity_date: '2026-09-01',
+  source_physical_form: 'sealed',
+  source_length: '8',
+  source_diameter: '2.5',
+  source_mass: '1500',
+  manufacturer: 'Eckert & Ziegler',
+  manufacturer_country: 'Germany',
+  source_certificate_no: 'Cert-1234',
+  original_owner_name: 'Radiation Protection Institute',
+  date_licensed: '2018-07-01',
+  original_application: 'medical',
+  current_owner_name: 'Korle Bu Teaching Hospital',
+  current_application: 'medical',
+  storage_facility_unit: 'Bunker B',
+  date_last_verified: '2026-08-20',
+  radiation_type: 'gamma',
+  source_integrity: 'intact',
+  contamination_status: 'clean',
+  leak_test_result: 'pending',
+  conditioning_status: 'none',
+  borehole_disposal_intention: 'no',
+  return_to_supplier: 'no',
+  reuse: 'no',
+  decay_storage: 'no',
+};
+
+function buildImportTemplate() {
+  const headers = [];
+  for (const k of ['device_serial_no', 'source_serial_no', 'nra_registration_no', 'source_barcode', 'no_on_source']) headers.push(k);
+  headers.push('radionuclide');
+  for (const k of Object.keys(FIELD_HEADERS)) {
+    if (!headers.includes(k)) headers.push(k);
+  }
+  const example = {};
+  for (const k of headers) {
+    example[FRIENDLY_LABELS[k] || k] = EXAMPLE_TEMPLATE_ROW[k] !== undefined ? EXAMPLE_TEMPLATE_ROW[k] : '';
+  }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet([example], { header: Object.keys(example) });
+  XLSX.utils.book_append_sheet(wb, ws, 'Template');
+  return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+}
+
 function normalizeHeader(h) {
   return String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
 }
@@ -233,4 +355,4 @@ async function importSources(buffer, ext, userId, opts = {}) {
   };
 }
 
-module.exports = { importSources, matchField };
+module.exports = { importSources, matchField, buildImportTemplate };

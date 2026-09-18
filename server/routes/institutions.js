@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Institution = require('../models/Institution');
+const { roleRequired } = require('../middleware/auth');
 
 router.get('/', async (req, res) => {
   try {
@@ -20,7 +21,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', roleRequired('admin'), async (req, res) => {
   try {
     const id = await Institution.create(req.body);
     res.status(201).json({ id });
@@ -29,7 +30,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', roleRequired('admin'), async (req, res) => {
   try {
     const existing = await Institution.findById(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Institution not found' });
@@ -40,7 +41,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', roleRequired('admin'), async (req, res) => {
   try {
     await Institution.delete(req.params.id);
     res.json({ ok: true });

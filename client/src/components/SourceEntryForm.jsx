@@ -152,6 +152,11 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    const issue = buildValidationIssue(form);
+    if (issue) {
+      toast.error(issue);
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -497,6 +502,23 @@ export default function SourceEntryForm({ editId, onSaved, onCancel }) {
       </form>
     </div>
   );
+}
+
+function buildValidationIssue(f) {
+  const ids = ['device_serial_no', 'source_serial_no', 'nra_registration_no', 'source_barcode'].filter((k) => String(f[k] || '').trim());
+  if (!ids.length) return 'Provide at least one identifier: device serial no., source serial no., NRA registration no. or source barcode';
+  if (!f.radionuclide_id) return 'Select a radionuclide';
+  const cur = Number(f.current_activity);
+  if (f.current_activity === '' || f.current_activity == null || !Number.isFinite(cur) || cur <= 0) return 'Current activity must be greater than zero';
+  if (!f.current_activity_unit) return 'Select the current activity unit';
+  if (f.original_activity !== '' && f.original_activity != null && (Number(f.original_activity) <= 0 || !Number.isFinite(Number(f.original_activity)))) return 'Original activity must be greater than zero';
+  for (const [k, label] of [['half_life_value', 'Half-life value'], ['source_length', 'Length'], ['source_diameter', 'Diameter'], ['source_mass', 'Mass']]) {
+    if (f[k] !== '' && f[k] != null && (Number(f[k]) <= 0 || !Number.isFinite(Number(f[k])))) return `${label} must be a positive number`;
+  }
+  for (const label of ['dose_rate_at_1m', 'dose_rate_on_surface', 'background_radiation']) {
+    if (f[label] !== '' && f[label] != null && (Number(f[label]) < 0 || !Number.isFinite(Number(f[label])))) return 'Dose rates cannot be negative';
+  }
+  return null;
 }
 
 function Field({ label, value, onChange, type = 'text', placeholder }) {

@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FiPlus, FiEdit, FiTrash2, FiSearch, FiUsers, FiInbox, FiSave, FiX, FiPhone, FiMapPin, FiFileText, FiPrinter } from 'react-icons/fi';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const emptyForm = { name: '', contact_phone: '', address: '', license_number: '', rpo_rpe_name: '' };
 
 export default function EndUsers() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -144,8 +147,9 @@ export default function EndUsers() {
         <p className="text-sm text-slate-500 mt-0.5 dark:text-slate-400">Licensed facilities that own or operate radioactive sources</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-5 items-start">
-        {/* ===== Left: form ===== */}
+      <div className={`grid grid-cols-1 ${isAdmin ? 'xl:grid-cols-[360px_1fr]' : ''} gap-5 items-start`}>
+        {/* ===== Left: form (managers only) ===== */}
+        {isAdmin && (
         <section className="card overflow-hidden xl:sticky xl:top-0">
           <header className="card-header">
             <div className="flex items-center gap-2">
@@ -190,6 +194,7 @@ export default function EndUsers() {
             </button>
           </form>
         </section>
+        )}
 
         {/* ===== Right: searchable list ===== */}
         <section className="card overflow-hidden">
@@ -198,7 +203,7 @@ export default function EndUsers() {
               <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Registered end users</h2>
               <p className="text-xs text-slate-400 mt-0.5 dark:text-slate-500">{filtered.length} of {users.length} facilities</p>
             </div>
-            {selected.length > 0 && (
+            {selected.length > 0 && isAdmin && (
               <>
                 <button onClick={() => exportPdf(users.filter((u) => selected.includes(u.id)), 'Selected End Users')} className="btn-secondary !px-3 !py-1.5 text-xs">
                   <FiFileText size={13} /> PDF ({selected.length}) selected
@@ -229,33 +234,37 @@ export default function EndUsers() {
             <table className="data-table">
               <thead className="sticky top-0 z-10">
                 <tr>
-                  <th className="w-10">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleAll}
-                      title={allSelected ? 'Clear selection' : 'Select all'}
-                      className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                    />
-                  </th>
+                  {isAdmin && (
+                    <th className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                        title={allSelected ? 'Clear selection' : 'Select all'}
+                        className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      />
+                    </th>
+                  )}
                   <th>Name</th>
                   <th>Telephone</th>
                   <th>License No.</th>
                   <th>RPO / RPE</th>
-                  <th className="text-right">Actions</th>
+                  {isAdmin && <th className="text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((u) => (
                   <tr key={u.id} className={selected.includes(u.id) ? 'bg-brand-50/60 border-l-4 border-l-brand-500 dark:bg-brand-500/10' : ''}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(u.id)}
-                        onChange={() => toggle(u.id)}
-                        className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                      />
-                    </td>
+                    {isAdmin && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(u.id)}
+                          onChange={() => toggle(u.id)}
+                          className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                        />
+                      </td>
+                    )}
                     <td className="min-w-[180px]">
                       <p className="font-semibold text-slate-800 dark:text-slate-100">{u.name}</p>
                       <p className="text-xs text-slate-400 dark:text-slate-500">{u.address || '—'}</p>
@@ -263,16 +272,18 @@ export default function EndUsers() {
                     <td className="whitespace-nowrap text-slate-600 dark:text-slate-300">{u.contact_phone || '—'}</td>
                     <td className="text-slate-600 dark:text-slate-300">{u.license_number || '—'}</td>
                     <td className="text-slate-600 dark:text-slate-300">{u.rpo_rpe_name || '—'}</td>
-                    <td>
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => startEdit(u)} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Edit">
-                          <FiEdit size={15} />
-                        </button>
-                        <button onClick={() => remove(u.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-500 dark:hover:text-rose-300 dark:hover:bg-rose-500/20" title="Delete">
-                          <FiTrash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
+                    {isAdmin && (
+                      <td>
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => startEdit(u)} className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:text-slate-500 dark:hover:text-brand-300 dark:hover:bg-brand-500/20" title="Edit">
+                            <FiEdit size={15} />
+                          </button>
+                          <button onClick={() => remove(u.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-500 dark:hover:text-rose-300 dark:hover:bg-rose-500/20" title="Delete">
+                            <FiTrash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

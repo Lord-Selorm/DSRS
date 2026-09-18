@@ -10,6 +10,7 @@ const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Demo2026!';
 let server;
 let base;
 let token;
+let adminToken;
 let testSourceId;
 let seedSourceId;
 const createStamp = `TEST-${Date.now()}`;
@@ -24,13 +25,18 @@ before(async () => {
 
 after(async () => {
   await pool.query("DELETE FROM sources WHERE source_barcode LIKE 'TEST-%' OR source_serial_no LIKE '%TEST-%' OR source_serial_no LIKE 'IMP-TEST-%' OR nra_registration_no LIKE '%TEST-%'");
+  await pool.query("DELETE FROM messages WHERE text LIKE 'chat-test %'");
   await pool.end();
   await new Promise((resolve) => server.close(resolve));
 });
 
 async function api(path, opts = {}) {
   const headers = { ...(opts.headers || {}) };
-  if (opts.token !== false && token) headers.Authorization = `Bearer ${token}`;
+  if ('token' in opts) {
+    if (opts.token !== false) headers.Authorization = `Bearer ${opts.token}`;
+  } else if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   if (opts.body !== undefined && !opts.raw) headers['Content-Type'] = 'application/json';
   const res = await fetch(`${base}${path}`, {
     method: opts.method || 'GET',
@@ -96,6 +102,17 @@ test('demo login returns a token', async () => {
   assert.strictEqual(status, 200);
   assert.ok(data.token);
   token = data.token;
+});
+
+test('admin login returns a token', async () => {
+  const { status, data } = await api('/api/auth/login', {
+    method: 'POST',
+    token: false,
+    body: { username: 'admin', password: 'Dsrs#Adm1n!2026' },
+  });
+  assert.strictEqual(status, 200);
+  assert.ok(data.token);
+  adminToken = data.token;
 });
 
 test('GET /api/sync/status reports main-store engine and requires auth', async () => {
@@ -243,6 +260,7 @@ test('update recalculates category and appends history', async () => {
   // 0.03 TBq -> A/D = 1 -> Cat 3
   const { status } = await api(`/api/sources/${testSourceId}`, {
     method: 'PUT',
+    token: adminToken,
     body: { current_activity: 0.03, current_activity_unit: 'TBq', current_owner_name: 'Test Transfer Institution' },
   });
   assert.strictEqual(status, 200);
@@ -423,4 +441,98 @@ test('seed institutions present', async () => {
   const { status, data } = await api('/api/institutions');
   assert.strictEqual(status, 200);
   assert.ok(data.length >= 3, `expected >=3 institutions, got ${data.length}`);
+});
+
+// ---------------------------------------------------------------
+// Admin-only gates, import template and chat
+// ---------------------------------------------------------------
+test('non-admin cannot update a source', async () => {
+  assert.ok(testSourceId, 'requires previous test');
+  const { status } = await api(`/api/sources/${testSourceId}`, {
+    method: 'PUT',
+    body: { current_activity: 0.03, current_activity_unit: 'TBq' },
+  });
+  assert.strictEqual(status, 403);
+});
+
+test('non-admin cannot add or delete institutions', async () => {
+  const created = await api('/api/institutions', {
+    method: 'POST',
+    body: { name: `TEST-Inst ${createStamp}` },
+  });
+  assert.strictEqual(created.status, 403);
+  const deleted = await api('/api/institutions/999999', { method: 'DELETE' });
+  assert.strictEqual(deleted.status, 403);
+});
+
+test('admin can create and delete an institution', async () => {
+  const created = await api('/api/institutions', {
+    method: 'POST',
+    token: adminToken,
+    body: { name: `TEST-Inst ${createStamp}`, contact_phone: '0244-0000' },
+  });
+  assert.strictEqual(created.status, 201);
+  assert.ok(created.data.id);
+  const deleted = await api(`/api/institutions/${created.data.id}`, { method: 'DELETE', token: adminToken });
+  assert.strictEqual(deleted.status, 200);
+});
+
+test('import template downloads an xlsx workbook with friendly headers', async () => {
+  const { status, data } = await api('/api/sources/import-template');
+  assert.strictEqual(status, 200);
+  assert.ok(data.contentType.includes('spreadsheetml.sheet'), `got ${data.contentType}`);
+  const wb = XLSX.read(data.buffer, { type: 'buffer' });
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+  assert.strictEqual(rows.length, 1, 'template ships one example row');
+  const headers = Object.keys(rows[0]);
+  for (const h of ['Device Serial No.', 'Source Serial No.', 'NRA Registration No.', 'Source Barcode',
+    'Radionuclide', 'Current Activity', 'Current Activity Unit', 'Original Activity', 'Half-life Value']) {
+    assert.ok(headers.includes(h), `template missing header: ${h}`);
+  }
+  assert.strictEqual(rows[0].Radionuclide, 'Am-241', 'example row carries a real radionuclide');
+});
+
+test('chat: post, list, paginate after id, unread and mark-read', async () => {
+  const text = `chat-test ${createStamp}`;
+  const sent = await api('/api/chat/messages', { method: 'POST', body: { channel: 'general', text } });
+  assert.strictEqual(sent.status, 201);
+  const msg = sent.data;
+  assert.strictEqual(msg.sender, 'demo');
+  assert.strictEqual(msg.channel, 'general');
+
+  const all = await api('/api/chat/messages?limit=100');
+  assert.strictEqual(all.status, 200);
+  assert.ok(all.data.some((m) => m.id === msg.id), 'message appears in history');
+
+  const after = await api(`/api/chat/messages?after=${msg.id - 1}`);
+  assert.ok(after.data.some((m) => m.id === msg.id), 'after pagination includes the new message');
+
+  const unread = await api('/api/chat/unread');
+  assert.strictEqual(unread.status, 200);
+  assert.ok(Number.isFinite(Number(unread.data.total)));
+
+  const readRes = await api('/api/chat/read', { method: 'POST', body: { channel: 'general', last_read_id: msg.id } });
+  assert.strictEqual(readRes.status, 200);
+});
+
+test('chat: non-admin cannot post to the management channel', async () => {
+  const res = await api('/api/chat/messages', { method: 'POST', body: { channel: 'management', text: 'nope' } });
+  assert.strictEqual(res.status, 403);
+});
+
+test('chat: admin sees the management channel too', async () => {
+  const admin = await api('/api/chat/messages?limit=1', { token: adminToken });
+  assert.strictEqual(admin.status, 200);
+  assert.ok(Array.isArray(admin.data));
+  const demo = await api('/api/chat/messages?limit=1');
+  assert.strictEqual(demo.status, 200);
+});
+
+test('users list exposes activity monitor facts to admins', async () => {
+  const { status, data } = await api('/api/users', { token: adminToken });
+  assert.strictEqual(status, 200);
+  const me = data.find((u) => u.username === 'demo');
+  assert.ok(me, 'demo listed');
+  assert.ok('activity' in me, 'activity collapsed onto each user');
+  assert.ok(Number.isFinite(Number(me.activity.messages)));
 });

@@ -18,6 +18,31 @@ function toTbq(activity, unit) {
   return activity * (UNIT_TO_TBQ[unit] || 0);
 }
 
+// Validates the fields that must be sane before a source is written, so bad
+// records never reach the registry (web or offline desktop).
+function validatePayload(data, { requireId = false } = {}) {
+  if (requireId) {
+    const hasId = ['device_serial_no', 'source_serial_no', 'nra_registration_no', 'source_barcode']
+      .some((k) => data[k] != null && String(data[k]).trim() !== '');
+    if (!hasId) {
+      throw new Error('Provide at least one identifier: device serial no., source serial no., NRA registration no. or source barcode');
+    }
+  }
+  for (const k of ['half_life_value', 'source_length', 'source_diameter', 'source_mass']) {
+    if (data[k] != null && data[k] !== '' && (!Number.isFinite(Number(data[k])) || Number(data[k]) <= 0)) {
+      throw new Error(`${k.replace(/_/g, ' ')} must be a positive number`);
+    }
+  }
+  for (const k of ['dose_rate_at_1m', 'dose_rate_on_surface', 'background_radiation']) {
+    if (data[k] != null && data[k] !== '' && (!Number.isFinite(Number(data[k])) || Number(data[k]) < 0)) {
+      throw new Error(`${k.replace(/_/g, ' ')} cannot be negative`);
+    }
+  }
+  if (data.original_activity != null && data.original_activity !== '' && Number(data.original_activity) <= 0) {
+    throw new Error('Original activity must be greater than zero');
+  }
+}
+
 async function resolveOwnerId(name) {
   if (name == null || String(name).trim() === '') return null;
   const n = String(name).trim();
@@ -57,9 +82,11 @@ class Source {
   static async create(data, userId) {
     const dValue = await DValue.findById(data.radionuclide_id);
     if (!dValue) throw new Error(`Invalid radionuclide_id: ${data.radionuclide_id}`);
+    validatePayload(data, { requireId: true });
 
     const currentTbq = toTbq(data.current_activity, data.current_activity_unit);
     if (currentTbq == null) throw new Error('Current activity and unit are required');
+    if (Number(data.current_activity) <= 0) throw new Error('Current activity must be greater than zero');
     const classification = await DValue.calculateCategory(currentTbq, dValue.d_value_tbq);
 
     const insertData = await this.sanitize({ ...data, source_classification: classification, created_by: userId });
@@ -94,6 +121,7 @@ class Source {
   static async update(id, data, userId) {
     const existing = await this.findById(id);
     if (!existing) throw new Error('Source not found');
+    validatePayload(data);
 
     const updateFields = await this.sanitize({ ...data });
     delete updateFields.source_classification;
@@ -110,6 +138,9 @@ class Source {
       const dValue = await DValue.findById(data.radionuclide_id || existing.radionuclide_id);
       const activity = data.current_activity !== undefined ? data.current_activity : existing.current_activity;
       const unit = data.current_activity_unit || existing.current_activity_unit;
+      if (activity != null && activity !== '' && Number(activity) <= 0) {
+        throw new Error('Current activity must be greater than zero');
+      }
       updateFields.source_classification = await DValue.calculateCategory(toTbq(activity, unit), dValue.d_value_tbq);
     }
 

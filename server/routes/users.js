@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const pool = require('../config/db');
 const { roleRequired } = require('../middleware/auth');
 
 const publicUser = (u) => ({
@@ -19,7 +20,27 @@ router.use(roleRequired('admin'));
 router.get('/', async (req, res) => {
   try {
     const users = await User.list();
-    res.json(users.map(publicUser));
+
+    // Monitoring feed: how much each account has touched the registry.
+    // keyed by user id from the audit log and by username from chat.
+    const [changeRows] = await pool.query(
+      'SELECT changed_by, COUNT(*) AS changes, MAX(changed_at) AS last_active FROM source_history GROUP BY changed_by'
+    );
+    const [msgRows] = await pool.query(
+      'SELECT sender, COUNT(*) AS messages, MAX(created_at) AS last_sent FROM messages GROUP BY sender'
+    );
+    const changeMap = new Map(changeRows.map((r) => [String(r.changed_by), r]));
+    const msgMap = new Map(msgRows.map((r) => [String(r.sender), r]));
+
+    res.json(users.map((u) => ({
+      ...publicUser(u),
+      activity: {
+        changes: Number((changeMap.get(String(u.id)) || {}).changes || 0),
+        last_active: (changeMap.get(String(u.id)) || {}).last_active || null,
+        messages: Number((msgMap.get(String(u.username)) || {}).messages || 0),
+        last_sent: (msgMap.get(String(u.username)) || {}).last_sent || null,
+      },
+    })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

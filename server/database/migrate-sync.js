@@ -41,6 +41,26 @@ async function migrateInto(conn, dbName) {
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (table_name, row_uuid)
   ) ` );
+
+  await conn.query(`CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sync_uuid VARCHAR(36) NULL,
+    channel VARCHAR(30) NOT NULL DEFAULT 'general',
+    sender VARCHAR(50) NOT NULL,
+    sender_name VARCHAR(100),
+    text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_message_channel (channel, id)
+  ) `);
+
+  await conn.query(`CREATE TABLE IF NOT EXISTS chat_reads (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    channel VARCHAR(30) NOT NULL,
+    last_read_id BIGINT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_chat_read (username, channel)
+  ) `);
 }
 
 module.exports = { migrateInto };

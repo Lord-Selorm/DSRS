@@ -180,6 +180,25 @@ CREATE TABLE IF NOT EXISTS source_photos (
   FOREIGN KEY (uploaded_by) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sync_uuid TEXT,
+  channel TEXT NOT NULL DEFAULT 'general',
+  sender TEXT NOT NULL,
+  sender_name TEXT,
+  text TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS chat_reads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  last_read_id INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (username, channel)
+);
+
 -- updated_at auto-maintenance (MySQL does this with ON UPDATE)
 CREATE TRIGGER IF NOT EXISTS trg_sources_upt AFTER UPDATE ON sources FOR EACH ROW
 BEGIN UPDATE sources SET updated_at = datetime('now') WHERE id = NEW.id; END;
