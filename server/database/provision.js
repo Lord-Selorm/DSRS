@@ -65,26 +65,39 @@ async function main() {
     console.log('Reference data present, skipping.');
   }
 
-  // 3. Users: strong admin + demo account
+  // 3. Users: admin (from env, no default) + optional demo (opt-in via DEMO_ENABLED)
   const adminPass = process.env.ADMIN_PASSWORD;
   if (!adminPass) {
     console.warn('WARNING: ADMIN_PASSWORD is not set — keeping existing admin, not resetting.');
   }
+  const demoEnabled = process.env.DEMO_ENABLED === 'true';
   const demoUser = process.env.DEMO_USERNAME || 'demo';
-  const demoPass = process.env.DEMO_PASSWORD || 'demo2026';
+  const demoPass = process.env.DEMO_PASSWORD;
 
   const upsertUser = async (username, password, fullName, role) => {
     await conn.query(
-      `INSERT INTO users (username, password_hash, full_name, role, must_change_password)
-       VALUES (?, ?, ?, ?, 0)
+      `INSERT INTO users (username, password_hash, full_name, email, role, must_change_password)
+       VALUES (?, ?, ?, ?, ?, 0)
        ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), full_name = VALUES(full_name), role = VALUES(role), is_active = 1, must_change_password = VALUES(must_change_password)`,
       [username, bcrypt.hashSync(password, 10), fullName, role]
     );
   };
 
   if (adminPass) await upsertUser('admin', adminPass, 'System Administrator', 'admin');
-  await upsertUser(demoUser, demoPass, 'Demo Operator', 'operator');
-  console.log(`Users ready. admin ${adminPass ? '(password set from env)' : '(unchanged)'} | ${demoUser}/${demoPass}`);
+
+  if (demoEnabled) {
+    if (!demoPass) {
+      console.warn('WARNING: DEMO_ENABLED=true but DEMO_PASSWORD is not set — demo account NOT provisioned.');
+    } else {
+      await upsertUser(demoUser, demoPass, 'Demo Operator', 'operator');
+      console.log(`Demo user provisioned: ${demoUser} (DEMO_ENABLED=true)`);
+    }
+  } else {
+    // Lock the demo door: no known credential can log in.
+    await conn.query('UPDATE users SET is_active = 0 WHERE username = ? AND is_active = 1', [demoUser]);
+    console.log(`Demo login disabled (DEMO_ENABLED unset). ${demoUser} deactivated.`);
+  }
+  console.log(`Users ready. admin ${adminPass ? '(password set from env)' : '(unchanged)'} | demo ${demoEnabled && demoPass ? 'enabled' : 'DISABLED'}`);
 
   // 4. Sample inventory so the client sees a populated system
   if (process.env.SEED_SAMPLE_SOURCES === '0') {
