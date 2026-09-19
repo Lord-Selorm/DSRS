@@ -11,7 +11,6 @@ const upload = require('../middleware/multer');
 const uploadDir = require('../middleware/multer').uploadDir;
 const pool = require('../config/db');
 const { importSources, buildImportTemplate } = require('../utils/sourceImport');
-const { uuid } = require('../utils/uuid');
 const { roleRequired } = require('../middleware/auth');
 
 const importUpload = multer({
@@ -183,12 +182,12 @@ router.post('/:id/photos', roleRequired('admin'), upload.array('photos', 10), as
     const files = req.files || [];
     if (files.length === 0) return res.status(400).json({ error: 'No photos provided' });
 
-    const rows = files.map((f) => [uuid(), source.id, f.filename, req.user.id]);
-    await pool.query('INSERT INTO source_photos (sync_uuid, source_id, photo_path, uploaded_by) VALUES ?', [rows]);
+    const rows = files.map((f) => [source.id, f.filename, req.user.id]);
+    await pool.query('INSERT INTO source_photos (source_id, photo_path, uploaded_by) VALUES ?', [rows]);
 
-    const historyValues = files.map((f) => [uuid(), source.id, req.user.id, 'photo', 'photo_path', null, f.filename]);
+    const historyValues = files.map((f) => [source.id, req.user.id, 'photo', 'photo_path', null, f.filename]);
     await pool.query(
-      'INSERT INTO source_history (sync_uuid, source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES ?',
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES ?',
       [historyValues]
     );
 
@@ -212,8 +211,8 @@ router.delete('/:id/photos/:photoId', roleRequired('admin'), async (req, res) =>
     fs.unlink(path.join(uploadDir, photo.photo_path), () => {});
 
     await pool.query(
-      'INSERT INTO source_history (sync_uuid, source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [uuid(), req.params.id, req.user.id, 'photo', 'photo_path', photo.photo_path, null]
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.params.id, req.user.id, 'photo', 'photo_path', photo.photo_path, null]
     );
 
     res.json({ ok: true });

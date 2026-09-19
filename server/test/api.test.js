@@ -27,6 +27,7 @@ after(async () => {
   await pool.query("DELETE FROM sources WHERE source_barcode LIKE 'TEST-%' OR source_serial_no LIKE '%TEST-%' OR source_serial_no LIKE 'IMP-TEST-%' OR nra_registration_no LIKE '%TEST-%'");
   await pool.query("DELETE FROM messages WHERE text LIKE 'chat-test %'");
   await pool.end();
+  if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
 });
 
@@ -113,15 +114,6 @@ test('admin login returns a token', async () => {
   assert.strictEqual(status, 200);
   assert.ok(data.token);
   adminToken = data.token;
-});
-
-test('GET /api/sync/status reports main-store engine and requires auth', async () => {
-  const unauth = await api('/api/sync/status', { token: false });
-  assert.strictEqual(unauth.status, 401);
-  const { status, data } = await api('/api/sync/status');
-  assert.strictEqual(status, 200);
-  assert.strictEqual(typeof data.enabled, 'boolean');
-  assert.strictEqual(typeof data.syncing, 'boolean');
 });
 
 test('duplicate username is rejected when changing credentials', async () => {

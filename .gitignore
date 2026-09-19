@@ -4,7 +4,5 @@ dist/
 *.log
 .env
 .env.local
-electron/dist/
-release/
 server/uploads/
 .DS_Store

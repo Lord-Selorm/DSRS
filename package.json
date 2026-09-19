@@ -2,30 +2,23 @@
   "name": "dsrs-app",
   "version": "1.0.0",
   "description": "Disused Sealed Radioactive Sources - Radioactive Source Inventory & Tracking",
-  "main": "electron/main.js",
-  "author": "NRA Ghana DSRS Team",
+  "author": "NRA GHANA DSRS Team",
   "scripts": {
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build:client": "cd client && npm run build",
     "start": "node server/index.js",
-    "start:electron": "electron .",
-    "rebuild:electron": "npx electron-rebuild -f -w better-sqlite3",
-    "rebuild:node": "cd server && npm rebuild better-sqlite3",
     "db:init": "cd server && npm run db:init",
     "db:seed": "cd server && npm run db:seed",
     "db:provision": "cd server && npm run db:provision",
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-    "dist": "npm run build:client && electron-builder --win",
-    "dist:portable": "npm run build:client && electron-builder --win portable"
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.11.1",
     "bwip-js": "^4.11.4",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -37,42 +30,6 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.2.0",
-    "concurrently": "^8.2.2",
-    "electron": "^28.1.0",
-    "electron-builder": "^24.13.3"
-  },
-  "build": {
-    "appId": "com.nra.gh.dsrs",
-    "productName": "DSRS Registry",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "electron/**/*",
-      "server/**/*",
-      "client/dist/**/*",
-      "!server/node_modules/**",
-      "!server/test/**",
-      "!server/package-lock.json"
-    ],
-    "asarUnpack": [
-      "**/node_modules/better-sqlite3/**"
-    ],
-    "npmRebuild": false,
-    "win": {
-      "icon": "build/icon.png",
-      "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
+    "concurrently": "^8.2.2"
   }
 }

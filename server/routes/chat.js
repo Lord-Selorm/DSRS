@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const { uuid } = require('../utils/uuid');
 
 // Everyone sees the general channel; managers (admins) additionally get a
 // management channel so they can coordinate without the operators' noise.
@@ -39,7 +38,6 @@ router.post('/messages', async (req, res) => {
     if (text.length > 4000) return res.status(400).json({ error: 'Message is too long (4000 characters max)' });
 
     const [result] = await pool.query('INSERT INTO messages SET ?', {
-      sync_uuid: uuid(),
       channel,
       sender: req.user.username,
       sender_name: req.user.full_name,

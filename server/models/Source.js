@@ -1,6 +1,5 @@
 const pool = require('../config/db');
 const DValue = require('./DValue');
-const { uuid } = require('../utils/uuid');
 
 const UNIT_TO_TBQ = {
   TBq: 1,
@@ -19,7 +18,7 @@ function toTbq(activity, unit) {
 }
 
 // Validates the fields that must be sane before a source is written, so bad
-// records never reach the registry (web or offline desktop).
+// records never reach the registry.
 function validatePayload(data, { requireId = false } = {}) {
   if (requireId) {
     const hasId = ['device_serial_no', 'source_serial_no', 'nra_registration_no', 'source_barcode']
@@ -90,7 +89,6 @@ class Source {
     const classification = await DValue.calculateCategory(currentTbq, dValue.d_value_tbq);
 
     const insertData = await this.sanitize({ ...data, source_classification: classification, created_by: userId });
-    insertData.sync_uuid = data.sync_uuid || uuid();
     delete insertData.id;
     delete insertData.created_at;
     delete insertData.updated_at;
@@ -112,8 +110,8 @@ class Source {
     }
 
     await pool.query(
-      'INSERT INTO source_history (sync_uuid, source_id, changed_by, change_type, field_changed, previous_value, new_value, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [uuid(), sourceId, userId, 'create', 'source_record', null, data.source_serial_no || data.source_barcode || `#${sourceId}`, 'Source registered']
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [sourceId, userId, 'create', 'source_record', null, data.source_serial_no || data.source_barcode || `#${sourceId}`, 'Source registered']
     );
     return sourceId;
   }
@@ -130,7 +128,6 @@ class Source {
     delete updateFields.created_at;
     delete updateFields.updated_at;
     delete updateFields.created_by;
-    updateFields.sync_uuid = data.sync_uuid || existing.sync_uuid || uuid();
 
     // Recalculate classification if activity or radionuclide changed
     if (data.current_activity !== undefined || data.radionuclide_id !== undefined ||
@@ -186,8 +183,8 @@ class Source {
     await pool.query('UPDATE sources SET ? WHERE id = ?', [updateFields, id]);
 
     if (historyRows.length > 0) {
-      const stmt = 'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value, sync_uuid) VALUES ?';
-      const values = historyRows.map(([field, oldV, newV]) => [id, userId, 'update', field, String(oldV), String(newV), uuid()]);
+      const stmt = 'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES ?';
+      const values = historyRows.map(([field, oldV, newV]) => [id, userId, 'update', field, String(oldV), String(newV)]);
       await pool.query(stmt, [values]);
     }
 
@@ -308,16 +305,16 @@ class Source {
     if (!existing) throw new Error('Source not found');
     await pool.query('UPDATE sources SET photo_path = ? WHERE id = ?', [photoPath, id]);
     await pool.query(
-      'INSERT INTO source_history (sync_uuid, source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [uuid(), id, userId, 'update', 'photo_path', existing.photo_path || null, photoPath]
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, userId, 'update', 'photo_path', existing.photo_path || null, photoPath]
     );
   }
 
   static async addMeasurement(sourceId, data, userId) {
-    const [result] = await pool.query('INSERT INTO source_measurements SET ?', { ...data, source_id: sourceId, sync_uuid: uuid() });
+    const [result] = await pool.query('INSERT INTO source_measurements SET ?', { ...data, source_id: sourceId });
     await pool.query(
-      'INSERT INTO source_history (sync_uuid, source_id, changed_by, change_type, field_changed, previous_value, new_value, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [uuid(), sourceId, userId, 'measurement', 'dose_rate_at_1m', null, String(data.dose_rate_at_1m), `Measurement on ${data.measurement_date}`]
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [sourceId, userId, 'measurement', 'dose_rate_at_1m', null, String(data.dose_rate_at_1m), `Measurement on ${data.measurement_date}`]
     );
     return result.insertId;
   }
@@ -328,10 +325,10 @@ class Source {
   }
 
   static async addLeakTest(sourceId, data, userId) {
-    const [result] = await pool.query('INSERT INTO source_leak_tests SET ?', { ...data, source_id: sourceId, sync_uuid: uuid() });
+    const [result] = await pool.query('INSERT INTO source_leak_tests SET ?', { ...data, source_id: sourceId });
     await pool.query(
-      'INSERT INTO source_history (sync_uuid, source_id, changed_by, change_type, field_changed, previous_value, new_value, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [uuid(), sourceId, userId, 'leak_test', 'leak_test_result', null, String(data.leak_test_result), `Leak test on ${data.leak_test_date}`]
+      'INSERT INTO source_history (source_id, changed_by, change_type, field_changed, previous_value, new_value, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [sourceId, userId, 'leak_test', 'leak_test_result', null, String(data.leak_test_result), `Leak test on ${data.leak_test_date}`]
     );
     await pool.query(
       'UPDATE sources SET leak_test_method = ?, leak_test_result = ?, leak_test_date = ?, leak_test_instrument_used = ?, leak_test_instrument_calibration_due_date = ? WHERE id = ?',

@@ -8,8 +8,6 @@ const { uploadDir } = require('./middleware/multer');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-const db = require('./config/db');
-const { createSyncController } = require('./sync/controller');
 
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 
@@ -26,12 +24,6 @@ app.use('/api/institutions', authRequired, require('./routes/institutions'));
 app.use('/api/users', authRequired, require('./routes/users'));
 app.use('/api/dashboard', authRequired, require('./routes/dashboard'));
 app.use('/api/chat', authRequired, require('./routes/chat'));
-
-const syncController = createSyncController({ local: db });
-app.use('/api/sync', authRequired, (req, res, next) => {
-  req.syncController = syncController;
-  next();
-}, require('./routes/sync'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
@@ -58,9 +50,7 @@ const PORT = process.env.PORT || 5000;
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`DSRS API running on port ${PORT}`);
-    syncController.start();
   });
 }
 
 module.exports = app;
-module.exports.syncController = syncController;
